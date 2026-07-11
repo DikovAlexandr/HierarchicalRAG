@@ -216,3 +216,29 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project-local temporary context (not part of the repository)
+/tmp/
+
+# Generated research data and large artifacts
+/data/raw/*
+!/data/raw/.gitkeep
+/data/interim/*
+!/data/interim/.gitkeep
+/data/processed/*
+!/data/processed/.gitkeep
+/artifacts/checkpoints/*
+!/artifacts/checkpoints/.gitkeep
+/artifacts/indexes/*
+!/artifacts/indexes/.gitkeep
+/results/runs/*
+!/results/runs/.gitkeep
+
+# Experiment trackers and model files
+/wandb/
+/mlruns/
+*.ckpt
+*.faiss
+*.pt
+*.pth
+*.safetensors

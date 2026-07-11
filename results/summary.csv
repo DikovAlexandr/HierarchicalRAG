@@ -1,0 +1,1 @@
+experiment_id,status,date,owner,git_commit,config,dataset,dataset_revision,split,model,model_revision,parameters_m,retriever,seed,noise_passages,em,f1,retrieval_recall_at_k,latency_ms_per_example,throughput_examples_s,peak_memory_gb,hardware,notes
