@@ -1,28 +1,72 @@
+schema_version: 1
+
 experiment:
   id: e0-smoke-example
-  seed: 42
+  hypothesis_id: E0
+  decision_ids: [D001, D002, D003]
+  owner: TO_SET
+  stage: exploratory
+  exact_command: TO_SET
+  git_commit: TO_SET
+  seeds: [42]
 
 dataset:
   name: hotpot_qa
+  config: fullwiki
   revision: TO_PIN
+  fingerprint: TO_RECORD
   split: validation
   max_examples: 32
+  sample_ids_file: TO_RECORD
+  preprocessing_revision: TO_PIN
+  exclusions: []
 
 retriever:
   type: gold_context
+  corpus_revision: TO_PIN
+  index_revision: not_applicable
   top_k: 2
+  parameters: {}
+
+context:
+  serialization_revision: TO_PIN
+  ordering: benchmark_order
+  deduplicate: true
+  truncation: TO_SET
 
 reader:
   family: baseline
   model: TO_SELECT
   revision: TO_PIN
+  tokenizer_revision: TO_PIN
+  precision: TO_SET
   max_context_tokens: TO_SET
   max_output_tokens: TO_SET
+  decoding:
+    temperature: 0.0
+    top_p: 1.0
+    do_sample: false
+
+training:
+  enabled: false
+  parameters: {}
 
 evaluation:
+  primary_metric: exact_match
   metrics: [exact_match, token_f1, retrieval_recall_at_k]
   distractor_counts: [0]
+  # Comparative experiments must replace these N/A values with a preselected analysis.
+  confidence_level: 0.95
+  confidence_interval: not_applicable_for_metric_smoke
+  significance_test: not_applicable_for_metric_smoke
+  multiple_comparison_correction: not_applicable
+  bootstrap_or_permutation_samples: 0
 
 runtime:
   device: TO_SET
+  hardware: TO_RECORD
+  operating_system: TO_RECORD
+  python_version: TO_RECORD
+  dependency_lock_checksum: TO_RECORD
+  deterministic_algorithms: true
   output_dir: results/runs/e0-smoke-example

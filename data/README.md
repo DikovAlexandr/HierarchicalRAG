@@ -1,7 +1,7 @@
 # Data
 
-- `raw/`: immutable downloaded or externally supplied data.
-- `interim/`: normalized or indexed intermediate data.
-- `processed/`: experiment-ready examples and deterministic slices.
+Use `raw/` for immutable source data, `interim/` for deterministic transformations, and `processed/` for experiment-ready examples. These directories are created locally when needed and ignored by Git.
 
-Data contents are ignored by Git. Record source URL, license, version/checksum, acquisition date, preprocessing command, and resulting schema in experiment metadata or a dataset-specific README without committing the dataset itself.
+Before use, record the source URL, license, acquisition date, exact dataset revision, checksum/fingerprint, official split, schema, preprocessing command/code revision, filtering rules, and resulting sample IDs. Raw data must never be edited in place. Splits must be frozen before model comparison.
+
+It is forbidden to tune, select prompts, debug, or choose checkpoints on test data; leak target/supporting evidence beyond the declared protocol; silently remove hard or failed examples; or change preprocessing between models. Every exclusion must be deterministic, counted, and justified before the confirmatory run.

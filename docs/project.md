@@ -14,7 +14,9 @@ Determine whether a small Hierarchical Reasoning Model can use retrieved evidenc
 
 The primary track is text RAG. Start with a small HotpotQA validation subset, then scale to the official validation split. Add 2WikiMultihopQA as a multi-hop replication and Natural Questions as a single-hop control only after the first end-to-end comparison is reproducible.
 
-Repository-level code repair is a stretch track. Start it only after the text pipeline passes the gate defined in the roadmap; SWE-bench setup and patch validation would otherwise dominate the available time.
+Repository-level code repair is a stretch track. Start it only after the text pipeline produces a reproducible frozen-HRM comparison; SWE-bench setup and patch validation would otherwise dominate the available time.
+
+This scope follows the mentor proposal. Any change to the primary track, hypotheses, deliverables, benchmark family, or evaluation contract requires a motivated entry in `docs/decisions.md` before implementation.
 
 ## Shared evaluation contract
 
@@ -25,6 +27,9 @@ Repository-level code repair is a stretch track. Start it only after the text pi
 - Report latency, throughput, peak memory, parameter count, and hardware alongside quality.
 - Use fixed dataset splits and at least three seeds for stochastic training comparisons.
 - Compare frozen and adapted HRM variants; keep an unchanged reasoning-task check for H3.
+- Report sample counts, confidence intervals, effect sizes where applicable, and preselected paired significance tests for system comparisons.
+- Correct for multiple comparisons when several models, datasets, metrics, or noise levels are tested.
+- Preserve all failures, exclusions, raw predictions, retrieval outputs, and resolved configurations.
 
 ## First experiment matrix
 
@@ -36,13 +41,33 @@ Repository-level code repair is a stretch track. Start it only after the text pi
 | E3 | Is HRM robust to retrieval noise? | 0, 1, 2, and 4 seeded distractors | Accuracy-degradation curve |
 | E4 | Does lightweight adaptation improve grounding? | Frozen vs low-level adapted HRM | EM/F1 plus retained reasoning score |
 
-## Success and stop conditions
+## Feasibility and stop conditions
 
-The preparation phase succeeds when the team can run a documented small-slice baseline and produce a validated result row. Before scaling, confirm that the HRM can ingest the required context and emit benchmark-compatible answers within available compute. If it cannot, document the failure and test a narrower input interface before committing to full training.
+The P1 feasibility gate passes when the team can run a documented small-slice baseline and produce a validated result row. Before scaling, confirm that the HRM can ingest the required context and emit benchmark-compatible answers within available compute. If it cannot, document the failure and test a narrower input interface before committing to full training.
+
+## Execution stages
+
+| Stage | Work | Exit criterion |
+|---|---|---|
+| P1 — Feasibility | Pin the HRM revision and environment; reproduce a reference task; load a deterministic HotpotQA slice; validate metrics | Reproduction and smoke checks are documented and repeatable |
+| P2 — Retrieval baseline | Build gold-context and BM25 adapters; select a compute-feasible CoT baseline | One command produces retrieval and QA metrics with complete metadata |
+| P3 — Frozen HRM | Define evidence serialization and the HRM answer interface | HRM and baseline run on identical examples and contexts |
+| P4 — Robustness | Add deterministic distractors and efficiency instrumentation | Clean/noisy differences include uncertainty and paired tests |
+| P5 — Adaptation | Adapt the low-level module and rerun the unchanged reasoning control | Grounding gains and reasoning retention are quantified |
+| P6 — Scale and report | Run fixed full splits and seeds; analyze errors; populate paper tables | Every claim links to reproducible runs and statistical evidence |
+| P7 — Optional code track | Run a small SWE-bench Lite feasibility study | Start only after the text-track gate and a recorded decision |
+
+## Risk controls
+
+- Validate natural-language context ingestion before large dataset or training runs.
+- Estimate compute and storage cost from smoke runs before scaling.
+- Keep retrieval candidates shared so retrieval does not confound reader comparisons.
+- Freeze primary metrics and analysis rules before confirmatory runs.
+- Record scope changes and negative feasibility results instead of quietly replacing the research question.
 
 ## Expected deliverables
 
 1. Reusable retrieval, reader, metric, and experiment-runner code.
 2. Reproducible frozen and adapted HRM evaluations against fair baselines.
 3. Robustness and efficiency analyses with machine-readable results.
-4. A proceedings article and supporting pre-defense/final presentation materials.
+4. A proceedings article and supporting final presentation materials.

@@ -1,6 +1,12 @@
-# Literature Map
+# References
 
-The initial bibliography is derived from the project proposal and stored in `bibliography.bib`. Verify metadata against the publisher or official repository before submission.
+## Why this directory exists
+
+`references/` is the evidence base for the project, not a storage folder for PDFs. It keeps the article bibliography and the primary works used to justify benchmarks, metrics, baselines, ablations, and architecture decisions. Without it, later decisions can become opinion-based and citations in the paper are harder to audit.
+
+Keep the directory if the project will produce a scientific article or if methodological decisions may rely on prior work. It can be removed only if bibliography management moves to another explicit, version-controlled system and `docs/decisions.md` still links every literature-based decision to a verified source.
+
+The initial `bibliography.bib` is derived from the mentor proposal. Verify each entry against the publisher, official proceedings, or official repository before citing it. Do not cite unread secondary summaries and never invent missing metadata.
 
 ## Read first
 
@@ -19,9 +25,9 @@ The initial bibliography is derived from the project proposal and stored in `bib
 - **Jimenez et al. — SWE-bench:** optional repository-repair evaluation.
 - **Zhang et al. — RepoCoder:** optional repository-level retrieval approach.
 
-## Reading-note template
+## Reading-note rule
 
-For each paper, record: citation key, research question, relevant method, dataset/metric, assumptions, reusable implementation, threat to validity, and one concrete implication for this project. Store notes as `references/notes/<citation-key>.md` when reading begins.
+When a paper motivates a decision, record its citation key, research question, relevant method, dataset/metric, assumptions, threat to validity, and concrete implication in `docs/decisions.md` or a focused note created under `references/notes/`. A title in the bibliography alone is not evidence that the work was reviewed.
 
 ## Open literature questions
 

@@ -1,5 +1,27 @@
 # Experiments
 
-Each experiment must have a versioned configuration in `configs/` and a unique ID such as `E2-frozen-hrm-hotpotqa-s1`. A configuration should pin dataset/split, data revision, retriever and top-k, model and revision, context serialization, decoding budget, seed, metrics, hardware, and output path.
+Each experiment must have a unique ID and a versioned configuration in `configs/`. The configuration is written before the main run and pins the hypothesis/decision ID, dataset and sample selection, retriever/index, context construction, model/tokenizer revisions, training or decoding parameters, seeds, metrics, statistical plan, environment, hardware, and output path.
 
-Raw outputs belong in `results/runs/<experiment-id>/` and are ignored by Git. Add validated aggregate values to `results/summary.csv`; store the command and configuration path with the run metadata.
+## Required design
+
+- State the hypothesis, primary metric, baseline, controls, exclusions, stopping rule, and expected comparison.
+- Keep retrieved evidence and inference budgets identical for the main HRM/baseline comparison.
+- Include ablations that isolate every claimed component; change one factor at a time unless testing an interaction.
+- Use at least three independent training seeds or record a resource-based exception before running.
+- Preselect confidence intervals, paired significance tests, effect sizes, and any multiple-comparison correction.
+- Run a deterministic smoke test before scaling and estimate compute/storage cost.
+
+## Required record
+
+Store the exact command, Git commit, fully resolved config, data/model/index revisions, environment, hardware, per-example predictions, retrieved IDs/scores, logs, failures, timing, memory, and statistical-analysis inputs under `results/runs/<experiment-id>/`. Raw run outputs are ignored by Git but must remain immutable and recoverable.
+
+Each completed run directory must contain these logical records, using the listed names unless the runner documents an equivalent format:
+
+- `manifest.json`: experiment ID, timestamps, owner, Git state, checksums, and file inventory;
+- `resolved-config.yaml`: every explicit value and inherited default;
+- `command.txt` and `environment.txt`: invocation, dependency lock/checksum, OS/drivers, and hardware;
+- `predictions.jsonl` and `retrieval.jsonl`: per-example outputs, retrieved IDs, ranks, and scores;
+- `metrics.json` and `statistics.json`: aggregate/per-example metrics, intervals, tests, effect sizes, and analysis settings;
+- `run.log`: warnings, failures, exclusions, runtime, and peak resources.
+
+It is forbidden to cherry-pick seeds/checkpoints/examples, change the primary analysis after seeing outcomes, discard failed runs, or report an aggregate without traceable raw evidence. Add a row to `results/summary.csv` only after validation.

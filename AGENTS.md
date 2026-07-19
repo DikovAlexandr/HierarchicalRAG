@@ -2,12 +2,12 @@
 
 These rules apply to the whole repository.
 
-1. Read `docs/project.md`, `planning/roadmap.md`, and `planning/board.md` before changing research code or plans.
-2. Claim one task on the board, keep its status current, and attach evidence when it is done.
-3. Preserve the shared evaluation contract: identical retrieved context and comparable decoding budgets across model families.
-4. Keep reusable code in `src/`, configurations in `experiments/configs/`, and exploratory work in `notebooks/`.
-5. Never invent metrics or citations. Record seeds, dataset versions, model revisions, commands, and hardware for every reported result.
-6. Do not commit secrets, datasets, checkpoints, indexes, or raw run directories.
-7. Make focused changes, add proportional tests, and avoid unrelated rewrites.
+1. Read `docs/project.md`, `docs/decisions.md`, and `.agents/README.md` before changing research code, protocols, or claims.
+2. Do not deviate from the mentor-approved goal, hypotheses, benchmark scope, or shared evaluation contract without a motivated entry in `docs/decisions.md`.
+3. Never invent, hide, cherry-pick, or manually alter results. Preserve failures and negative findings.
+4. Every experiment must be reproducible from a versioned configuration, exact command, code revision, data/model revisions, seeds, environment, and hardware record.
+5. Use fair controls, explicit ablations, uncertainty estimates, and appropriate statistical tests before making comparative claims.
+6. Keep reusable code in `src/`, tests in `tests/`, and experiment definitions in `experiments/configs/`.
+7. Do not commit secrets, datasets, model weights, indexes, or raw run outputs.
 
-See `agents/README.md` for the working protocol and completion checklist.
+The binding experimental protocol and completion checklist are in `.agents/README.md`.
