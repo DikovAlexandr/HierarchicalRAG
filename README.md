@@ -11,6 +11,7 @@ The first milestone targets text RAG on multi-hop question answering. Repository
 - [Decision log](docs/decisions.md): motivated protocol and scope decisions.
 - [Literature map](references/README.md): papers and reading priorities.
 - [Agent rules](AGENTS.md): instructions for LLM-assisted work.
+- [Cluster execution](cluster/README.md): pinned Linux container and Slurm/Apptainer contract.
 
 ## Repository layout
 
@@ -25,6 +26,9 @@ reports/      Paper, tables, figures, and final reporting
 results/      Ignored run outputs plus tracked aggregate summaries
 src/          Reusable implementation
 tests/        Automated tests and smoke checks
+cluster/      Slurm/Apptainer launchers and cluster execution contract
+containers/   Pinned container definitions; CPU evaluation now, GPU after HRM selection
+environments/ Exact package locks used by containers
 ```
 
 Before starting work, read the project contract and research protocol. Do not report a result unless its configuration, source revisions, seeds, raw outputs, environment, uncertainty, and statistical comparison are recoverable. Do not commit datasets, model weights, indexes, secrets, or raw run outputs.

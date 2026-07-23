@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -105,7 +107,12 @@ def execute(
             raise ValueError("confirmatory output must be under results/runs")
     run_dir = prepare_run_directory(output_dir)
 
-    command = subprocess.list2cmdline([sys.executable, *sys.argv])
+    arguments = [sys.executable, *sys.argv]
+    command = (
+        subprocess.list2cmdline(arguments)
+        if os.name == "nt"
+        else shlex.join(arguments)
+    )
     reproduction_command = experiment["exact_command"]
     resolved = json.loads(json.dumps(config))
     resolved["experiment"]["git_commit"] = revision

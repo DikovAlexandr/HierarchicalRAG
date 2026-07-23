@@ -1,0 +1,11 @@
+.git
+.pytest_cache
+*.egg-info
+artifacts
+data/raw
+data/interim
+data/processed
+results/runs
+tmp
+__pycache__
+*.pyc
