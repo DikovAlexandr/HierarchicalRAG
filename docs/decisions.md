@@ -33,6 +33,16 @@ Required fields: ID, date, owner, status, decision, alternatives, evidence, expe
 - **Impact:** no claim that BM25 is the best retriever; E1 determines whether a dense-retrieval ablation is needed.
 - **Revisit when:** retrieval recall materially limits reader evaluation.
 
+### D004 — Separate controlled HotpotQA smoke tests from primary open-domain retrieval
+
+- **Date / owner:** 2026-07-23 / alexander_dikov.
+- **Status:** accepted before E1 and before any model comparison.
+- **Decision:** use the official HotpotQA distractor validation context only for metric validation, interface smoke tests, and controlled robustness checks. Use HotpotQA fullwiki validation with one fixed BM25 index over a pinned official Wikipedia-introduction corpus as the primary retrieval setting for E1–E4. Gold supporting paragraphs remain a labeled diagnostic upper bound. Cache one retrieval result per example and give the identical ranked passages, ordering, and context budget to every reader.
+- **Alternatives:** use distractor mode as the primary result; make distractor and fullwiki co-primary; begin directly with a dense retriever.
+- **Evidence:** the mentor proposal defines the text pipeline as top-k retrieval from an open-domain index and requires a shared retriever for HRM/CoT comparisons. The official HotpotQA documentation distinguishes the ten-paragraph distractor setting from fullwiki retrieval over Wikipedia: https://hotpotqa.github.io/ and https://github.com/hotpotqa/hotpot. D003 already selects BM25 as the low-confound first retriever.
+- **Impact:** distractor candidate-reranking numbers are exploratory diagnostics and cannot fill the primary HotpotQA cells in Table 1. Preparing a pinned corpus and index is required before E1; dense retrieval is an ablation only if BM25 recall is limiting. This decision does not change H1–H3, the benchmark, or the shared evaluation contract.
+- **Revisit when:** the official corpus cannot be obtained or indexed within the documented storage/compute budget; any replacement requires mentor confirmation and a superseding decision before confirmatory runs.
+
 ## New decision template
 
 ### DXXX — Short title

@@ -1,0 +1,10 @@
+{
+  "answer": {
+    "e0-a": "The Paris",
+    "e0-b": "no"
+  },
+  "sp": {
+    "e0-a": [["France", 0], ["Paris", 0]],
+    "e0-b": [["Nile", 0]]
+  }
+}

@@ -1,3 +1,5 @@
-"""Reusable components for Hierarchical Reasoning Model RAG experiments."""
+"""Reusable, model-independent components for HRM RAG experiments."""
 
-__all__: list[str] = []
+__version__ = "0.1.0"
+
+__all__ = ["__version__"]

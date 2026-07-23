@@ -1,0 +1,22 @@
+[
+  {
+    "_id": "e0-a",
+    "question": "What city is the capital of France?",
+    "answer": "Paris",
+    "supporting_facts": [["France", 0], ["Paris", 0]],
+    "context": [
+      ["France", ["France is a country in Europe."]],
+      ["Paris", ["Paris is the capital of France."]]
+    ]
+  },
+  {
+    "_id": "e0-b",
+    "question": "Is the Nile longer than the Thames?",
+    "answer": "yes",
+    "supporting_facts": [["Nile", 0], ["Thames", 0]],
+    "context": [
+      ["Nile", ["The Nile is approximately 6,650 km long."]],
+      ["Thames", ["The Thames is approximately 346 km long."]]
+    ]
+  }
+]

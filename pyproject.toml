@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hierarchical-rag"
+version = "0.1.0"
+description = "Reproducible evaluation components for HRM-based retrieval-augmented generation."
+requires-python = ">=3.11"
+dependencies = ["PyYAML>=6,<7"]
+
+[project.optional-dependencies]
+data = ["pyarrow>=18"]
+dev = ["pytest>=8,<10"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+pythonpath = ["src"]

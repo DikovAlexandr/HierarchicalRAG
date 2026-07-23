@@ -25,3 +25,17 @@ Each completed run directory must contain these logical records, using the liste
 - `run.log`: warnings, failures, exclusions, runtime, and peak resources.
 
 It is forbidden to cherry-pick seeds/checkpoints/examples, change the primary analysis after seeing outcomes, discard failed runs, or report an aggregate without traceable raw evidence. Add a row to `results/summary.csv` only after validation.
+
+## E0 metric validation
+
+E0 checks the local HotpotQA answer, supporting-fact, and joint metrics against outputs pinned from the official evaluator. It uses a small manually authored fixture and makes no model-quality or retrieval claim.
+
+From a clean committed worktree:
+
+```text
+python -m pip install -e .
+python -m pytest -q
+python -m hierarchical_rag.run_e0 --config experiments/configs/e0-hotpotqa-metrics-v1.yaml
+```
+
+The last command refuses a dirty worktree, verifies input and dependency-lock checksums, and refuses to overwrite an existing run directory. Preserve `results/runs/e0-hotpotqa-metrics-v1/` after the run; it is intentionally ignored by Git.

@@ -1,0 +1,65 @@
+schema_version: 1
+
+experiment:
+  id: e0-hotpotqa-metrics-v1
+  hypothesis_id: E0
+  decision_ids: [D001, D002, D004]
+  owner: alexander_dikov
+  stage: confirmatory
+  exact_command: python -m hierarchical_rag.run_e0 --config experiments/configs/e0-hotpotqa-metrics-v1.yaml
+  seeds: []
+  stopping_rule: Run once; pass only if every official aggregate metric matches within the predefined tolerance.
+  exclusions: []
+
+dataset:
+  name: hotpot_qa
+  config: manually_authored_metric_fixture
+  split: not_applicable
+  sample_count: 2
+  gold_file: tests/fixtures/e0/gold.json
+  gold_sha256: 8f09505b6a6a1dacd5e813d93e66a3b94df1ac17f6663e595bc0a9cc3c51e31c
+  predictions_file: tests/fixtures/e0/predictions.json
+  predictions_sha256: 0a85e046df24d34bc0182d903ed5b5ad77dd6e9901d4b2674cf3653af65bbccc
+  leakage_note: The fixture validates scoring only and is never used for model training, selection, or a task-quality claim.
+
+retriever:
+  type: not_applicable
+  reason: E0 validates the scorer without retrieval.
+
+reader:
+  type: fixed_example_predictions
+  training: disabled
+  decoding: not_applicable
+
+evaluation:
+  primary_check: exact_match_to_pinned_official_evaluator_outputs
+  absolute_tolerance: 1.0e-12
+  reference_evaluator:
+    repository: https://github.com/hotpotqa/hotpot
+    revision: 3635853403a8735609ee997664e1528f4480762a
+    file_url: https://raw.githubusercontent.com/hotpotqa/hotpot/3635853403a8735609ee997664e1528f4480762a/hotpot_evaluate_v1.py
+    sha256: d35fc91a6db21d791dbdda11daf3856e9359f5701d54e3eefba20d88fecc02c0
+  expected_metrics:
+    em: 0.5
+    f1: 0.5
+    prec: 0.5
+    recall: 0.5
+    sp_em: 0.5
+    sp_f1: 0.8333333333333333
+    sp_prec: 1.0
+    sp_recall: 0.75
+    joint_em: 0.5
+    joint_f1: 0.5
+    joint_prec: 0.5
+    joint_recall: 0.5
+  statistics:
+    status: not_applicable
+    reason: No model comparison is performed in E0.
+
+runtime:
+  device: cpu
+  deterministic_algorithms: true
+  require_clean_worktree: true
+  dependency_lock_file: experiments/e0-requirements.lock
+  dependency_lock_sha256: 0969da99a0bc2a1b71ed50584560f4588a37567ac63af3ddbaf3c4617ca5621a
+  output_dir: results/runs/e0-hotpotqa-metrics-v1
