@@ -42,7 +42,12 @@ class HotpotExample:
     context: tuple[Paragraph, ...]
 
     @classmethod
-    def from_mapping(cls, raw: Mapping[str, Any]) -> "HotpotExample":
+    def from_mapping(
+        cls,
+        raw: Mapping[str, Any],
+        *,
+        require_supporting_context: bool = True,
+    ) -> "HotpotExample":
         identifier = raw.get("_id", raw.get("id"))
         if not isinstance(identifier, str) or not identifier:
             raise ValueError("HotpotQA example requires a non-empty _id or id")
@@ -59,7 +64,8 @@ class HotpotExample:
         supporting_facts = _parse_supporting_facts(
             raw.get("supporting_facts", ()), identifier
         )
-        _validate_supporting_facts(identifier, context, supporting_facts)
+        if require_supporting_context:
+            _validate_supporting_facts(identifier, context, supporting_facts)
 
         return cls(
             identifier=identifier,
@@ -93,8 +99,10 @@ class HotpotExample:
         return record
 
 
-def load_hotpotqa(path: str | Path) -> tuple[HotpotExample, ...]:
-    """Load official JSON or a Hugging Face Parquet export."""
+def load_hotpotqa(
+    path: str | Path, *, require_supporting_context: bool = True
+) -> tuple[HotpotExample, ...]:
+    """Load official JSON or Parquet with explicit context validation."""
 
     source = Path(path)
     if source.suffix.lower() == ".parquet":
@@ -112,7 +120,12 @@ def load_hotpotqa(path: str | Path) -> tuple[HotpotExample, ...]:
         if not isinstance(raw, list):
             raise ValueError("HotpotQA JSON must contain a top-level list")
 
-    examples = tuple(HotpotExample.from_mapping(item) for item in raw)
+    examples = tuple(
+        HotpotExample.from_mapping(
+            item, require_supporting_context=require_supporting_context
+        )
+        for item in raw
+    )
     identifiers = [example.identifier for example in examples]
     if len(identifiers) != len(set(identifiers)):
         raise ValueError("HotpotQA example identifiers must be unique")

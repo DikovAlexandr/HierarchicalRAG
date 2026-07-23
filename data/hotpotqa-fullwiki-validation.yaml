@@ -1,0 +1,33 @@
+schema_version: 1
+dataset: HotpotQA
+config: fullwiki
+split: validation
+official_url: https://curtis.ml.cmu.edu/datasets/hotpot/hotpot_dev_fullwiki_v1.json
+official_documentation: https://hotpotqa.github.io/
+retrieved_from: https://huggingface.co/datasets/hotpotqa/hotpot_qa
+retrieved_revision: 1908d6afbbead072334abe2965f91bd2709910ab
+retrieved_file: fullwiki/validation-00000-of-00001.parquet
+local_path: data/raw/hotpotqa/fullwiki-validation-1908d6a.parquet
+size_bytes: 28041820
+sha256: 78933c0a31a5f7b420d4effdf4cd4eed573b28c6a3da6179dcf7a02b39e51d03
+license: CC-BY-SA-4.0
+acquired_on: 2026-07-23
+example_count: 7405
+context_semantics: benchmark_provided_fullwiki_candidates_not_required_to_contain_gold
+gold_title_normalization: NFKC_and_whitespace_preserve_case
+unique_normalized_gold_titles: 13783
+missing_normalized_gold_titles_from_index: 0
+gold_titles_in_empty_corpus_exclusions: 0
+cross_check:
+  distractor_revision: 1908d6afbbead072334abe2965f91bd2709910ab
+  distractor_sha256: c20b638ca82b21d04fe12e14ff417ad05153d4d215a65de54497fca4e972f7c6
+  same_example_ids: true
+  mismatched_questions: 0
+  mismatched_answers: 0
+  mismatched_types: 0
+  mismatched_levels: 0
+  mismatched_supporting_facts: 0
+  different_contexts: 7400
+notes:
+  - The official CMU endpoint was attempted first but failed with TLS and HTTP timeouts from this environment.
+  - The pinned Parquet conversion is used only after the identity cross-check above.

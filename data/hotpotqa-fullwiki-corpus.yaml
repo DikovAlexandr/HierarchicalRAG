@@ -28,4 +28,10 @@ expected_empty_text_count: 94
 expected_indexed_document_count: 5233235
 local_raw_path: data/raw/hotpotqa/enwiki-20171001-pages-meta-current-withlinks-abstracts.tar.bz2
 local_index_path: artifacts/indexes/hotpotqa-fullwiki-fts5-v2.sqlite3
-status: verified_downloaded_not_indexed
+index_size_bytes: 2803130368
+index_sha256: 0fe886a3f697db5ecc2e3bd223ec6b28efd3b8f3ab034b13d4774ca1427aa7aa
+index_manifest_path: artifacts/indexes/hotpotqa-fullwiki-fts5-v2.manifest.json
+index_manifest_sha256: 0aa14e88ed8a9808bff795a3fd4757c1f1528645c0c7b58021b0b786bc5c5471
+build_elapsed_seconds: 800.2620121839973
+build_throughput_documents_per_second: 6539.4019962511575
+status: verified_indexed

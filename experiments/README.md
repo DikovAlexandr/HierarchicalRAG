@@ -39,3 +39,20 @@ python -m hierarchical_rag.run_e0 --config experiments/configs/e0-hotpotqa-metri
 ```
 
 The last command refuses a dirty worktree, verifies input and dependency-lock checksums, and refuses to overwrite an existing run directory. Preserve `results/runs/e0-hotpotqa-metrics-v1/` after the run; it is intentionally ignored by Git.
+
+## E1 fullwiki retrieval diagnostic
+
+E1 measures retrieval independently of any reader. It uses the pinned HotpotQA
+fullwiki validation export and the immutable schema-v2 FTS5 index. The smoke run
+must succeed before the full validation run; neither run permits retriever tuning.
+
+From a clean committed worktree in the pinned CPU container:
+
+```text
+python -m hierarchical_rag.run_e1 --config experiments/configs/e1-hotpotqa-fullwiki-bm25-smoke-v1.yaml
+python -m hierarchical_rag.run_e1 --config experiments/configs/e1-hotpotqa-fullwiki-bm25-v1.yaml
+```
+
+Both commands verify dataset, index, index-manifest, and dependency-lock
+checksums. E1 reports Recall@k, uncertainty, latency, throughput, and peak memory;
+answer EM/F1 remains explicitly not applicable until a reader is introduced.

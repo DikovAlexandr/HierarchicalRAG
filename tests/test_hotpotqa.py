@@ -52,6 +52,16 @@ def test_reject_supporting_fact_outside_context(hotpot_records):
         HotpotExample.from_mapping(hotpot_records[0])
 
 
+def test_fullwiki_mode_allows_gold_title_outside_provided_context(hotpot_records):
+    hotpot_records[0]["supporting_facts"] = [["Missing", 0]]
+
+    example = HotpotExample.from_mapping(
+        hotpot_records[0], require_supporting_context=False
+    )
+
+    assert example.supporting_facts[0].title == "Missing"
+
+
 def test_report_out_of_range_sentence_without_mutating_record(hotpot_records):
     hotpot_records[0]["supporting_facts"] = [["France", 99]]
 

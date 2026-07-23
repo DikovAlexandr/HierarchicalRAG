@@ -28,6 +28,40 @@ class PairedTest:
     permutations: int
 
 
+def bootstrap_mean(
+    values: Sequence[float],
+    *,
+    confidence_level: float = 0.95,
+    resamples: int = 10_000,
+    seed: int = 0,
+) -> ConfidenceInterval:
+    """Percentile bootstrap interval for one predeclared sample mean."""
+
+    sample = tuple(float(value) for value in values)
+    if not sample or not all(math.isfinite(value) for value in sample):
+        raise ValueError("values must be a non-empty finite sequence")
+    if not 0 < confidence_level < 1:
+        raise ValueError("confidence_level must be in (0, 1)")
+    if resamples < 1:
+        raise ValueError("resamples must be positive")
+
+    rng = random.Random(seed)
+    sample_size = len(sample)
+    estimates = sorted(
+        fmean(sample[rng.randrange(sample_size)] for _ in range(sample_size))
+        for _ in range(resamples)
+    )
+    alpha = 1 - confidence_level
+    return ConfidenceInterval(
+        estimate=fmean(sample),
+        low=_quantile(estimates, alpha / 2),
+        high=_quantile(estimates, 1 - alpha / 2),
+        confidence_level=confidence_level,
+        method="percentile_bootstrap_mean",
+        resamples=resamples,
+    )
+
+
 def paired_bootstrap_difference(
     baseline: Sequence[float],
     candidate: Sequence[float],

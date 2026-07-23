@@ -5,10 +5,20 @@ import math
 import pytest
 
 from hierarchical_rag.statistics import (
+    bootstrap_mean,
     paired_bootstrap_difference,
     paired_cohens_dz,
     paired_permutation_test,
 )
+
+
+def test_bootstrap_mean_is_deterministic():
+    first = bootstrap_mean([0.0, 0.5, 1.0, 1.0], resamples=500, seed=17)
+    second = bootstrap_mean([0.0, 0.5, 1.0, 1.0], resamples=500, seed=17)
+
+    assert first == second
+    assert first.estimate == 0.625
+    assert first.low <= first.estimate <= first.high
 
 
 def test_paired_bootstrap_is_deterministic():

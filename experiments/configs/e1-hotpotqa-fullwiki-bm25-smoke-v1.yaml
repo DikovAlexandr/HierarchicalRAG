@@ -1,0 +1,61 @@
+schema_version: 1
+
+experiment:
+  id: e1-hotpotqa-fullwiki-bm25-smoke-v1
+  hypothesis_id: E1
+  decision_ids: [D002, D003, D004, D005, D006]
+  owner: alexander_dikov
+  stage: smoke
+  exact_command: python -m hierarchical_rag.run_e1 --config experiments/configs/e1-hotpotqa-fullwiki-bm25-smoke-v1.yaml
+  seeds: [42]
+  stopping_rule: Run the fixed 16-example slice once; pass only if every example produces a top-10 ranking and all provenance checks pass.
+  exclusions: []
+
+dataset:
+  name: hotpot_qa
+  config: fullwiki
+  split: validation
+  source_file: data/raw/hotpotqa/fullwiki-validation-1908d6a.parquet
+  source_revision: 1908d6afbbead072334abe2965f91bd2709910ab
+  source_sha256: 78933c0a31a5f7b420d4effdf4cd4eed573b28c6a3da6179dcf7a02b39e51d03
+  source_count: 7405
+  require_supporting_context: false
+  selection:
+    method: deterministic_sha256
+    size: 16
+    seed: 42
+  leakage_note: Validation labels are used only for retrieval evaluation, never index construction, tuning, prompt selection, or training.
+
+retriever:
+  type: sqlite_fts5_bm25
+  index_file: artifacts/indexes/hotpotqa-fullwiki-fts5-v2.sqlite3
+  index_sha256: 0fe886a3f697db5ecc2e3bd223ec6b28efd3b8f3ab034b13d4774ca1427aa7aa
+  index_manifest_file: artifacts/indexes/hotpotqa-fullwiki-fts5-v2.manifest.json
+  index_manifest_sha256: 0aa14e88ed8a9808bff795a3fd4757c1f1528645c0c7b58021b0b786bc5c5471
+  index_schema_version: 2
+  corpus_sha256: 1acca1c5cc93c4890ea51091d2bad7c3ef6987aead127ab88728dc9e26555729
+  query: full_question
+  top_k: [1, 2, 5, 10]
+  title_normalization: NFKC_and_whitespace_preserve_case
+
+reader:
+  type: not_applicable
+  reason: E1 measures retrieval separately before any reader comparison.
+
+evaluation:
+  primary_metric: paragraph_recall_at_10
+  secondary_metrics: [all_supporting_paragraphs_at_10, supporting_fact_recall_at_10, latency_seconds]
+  statistics:
+    primary_interval: percentile_bootstrap_mean
+    confidence_level: 0.95
+    resamples: 1000
+    seed: 42
+    significance_test: not_applicable_no_system_comparison
+
+runtime:
+  device: cpu
+  deterministic_algorithms: true
+  require_clean_worktree: true
+  dependency_lock_file: environments/eval-cpu.lock
+  dependency_lock_sha256: 936dfc3a0523e10c6ecb8d942456d2c86bc75bfc6d8c47a3029a94727849d8f9
+  output_dir: results/runs/e1-hotpotqa-fullwiki-bm25-smoke-v1
