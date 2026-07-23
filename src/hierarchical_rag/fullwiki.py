@@ -9,14 +9,14 @@ import json
 import sqlite3
 import tarfile
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, BinaryIO, Iterable, Iterator, Mapping, Sequence, TextIO
 
 from hierarchical_rag.retrieval import Document, ScoredDocument, tokenize
 
 
-INDEX_SCHEMA_VERSION = 1
+INDEX_SCHEMA_VERSION = 2
 FTS5_TOKENIZER = "unicode61 remove_diacritics 2"
 FTS5_K1 = 1.2
 FTS5_B = 0.75
@@ -30,7 +30,9 @@ class WikiDocument:
     text: str
 
     @classmethod
-    def from_mapping(cls, raw: Mapping[str, Any]) -> "WikiDocument":
+    def from_mapping(
+        cls, raw: Mapping[str, Any], *, allow_empty_text: bool = False
+    ) -> "WikiDocument":
         title = raw.get("title")
         if not isinstance(title, str) or not title.strip():
             raise ValueError("Wikipedia document requires a non-empty title")
@@ -38,7 +40,7 @@ class WikiDocument:
         if not isinstance(wiki_id, (str, int)):
             raise ValueError(f"{title}: Wikipedia id must be a string or integer")
         text = _join_text(raw.get("text"), title)
-        if not text:
+        if not text and not allow_empty_text:
             raise ValueError(f"{title}: Wikipedia text cannot be empty")
         normalized_title = title.strip()
         return cls(
@@ -50,25 +52,53 @@ class WikiDocument:
 
 
 def canonical_title(title: str) -> str:
-    """Create the case-insensitive textual identifier required by HotpotQA."""
+    """Normalize a HotpotQA title without collapsing case-distinct pages."""
 
     normalized = unicodedata.normalize("NFKC", title)
-    return " ".join(normalized.split()).casefold()
+    return " ".join(normalized.split())
 
 
-def iter_wiki_documents(path: str | Path) -> Iterator[WikiDocument]:
+@dataclass(slots=True)
+class CorpusReadReport:
+    records_seen: int = 0
+    documents_yielded: int = 0
+    skipped_empty_text: list[dict[str, Any]] = field(default_factory=list)
+
+    def as_dict(self, *, complete: bool) -> dict[str, Any]:
+        return {
+            "complete": complete,
+            "source_record_count": self.records_seen,
+            "indexed_document_count": self.documents_yielded,
+            "skipped_empty_text_count": len(self.skipped_empty_text),
+            "skipped_documents": list(self.skipped_empty_text),
+        }
+
+
+def iter_wiki_documents(
+    path: str | Path,
+    *,
+    empty_text_policy: str = "error",
+    report: CorpusReadReport | None = None,
+) -> Iterator[WikiDocument]:
     """Stream documents from official tar.bz2, bz2 JSONL, or plain JSONL."""
 
+    if empty_text_policy not in {"error", "skip"}:
+        raise ValueError("empty_text_policy must be 'error' or 'skip'")
+    read_report = report if report is not None else CorpusReadReport()
     source = Path(path)
     suffixes = [suffix.casefold() for suffix in source.suffixes]
     if suffixes[-2:] == [".tar", ".bz2"]:
-        yield from _iter_tar_bz2(source)
+        yield from _iter_tar_bz2(source, empty_text_policy, read_report)
     elif suffixes[-1:] == [".bz2"]:
         with bz2.open(source, "rt", encoding="utf-8") as stream:
-            yield from _iter_jsonl(stream, str(source))
+            yield from _iter_jsonl(
+                stream, str(source), empty_text_policy, read_report
+            )
     else:
         with source.open("r", encoding="utf-8") as stream:
-            yield from _iter_jsonl(stream, str(source))
+            yield from _iter_jsonl(
+                stream, str(source), empty_text_policy, read_report
+            )
 
 
 def build_fts5_index(
@@ -96,7 +126,7 @@ def build_fts5_index(
             for rowid, document in enumerate(documents, start=1):
                 if document.document_id in seen_ids:
                     raise ValueError(
-                        f"duplicate canonical title: {document.document_id!r}"
+                        f"duplicate normalized title: {document.document_id!r}"
                     )
                 seen_ids.add(document.document_id)
                 connection.execute(
@@ -265,7 +295,9 @@ def _create_schema(connection: sqlite3.Connection) -> None:
     )
 
 
-def _iter_tar_bz2(path: Path) -> Iterator[WikiDocument]:
+def _iter_tar_bz2(
+    path: Path, empty_text_policy: str, report: CorpusReadReport
+) -> Iterator[WikiDocument]:
     with tarfile.open(path, mode="r:bz2") as archive:
         for member in archive:
             if not member.isfile():
@@ -273,20 +305,32 @@ def _iter_tar_bz2(path: Path) -> Iterator[WikiDocument]:
             extracted = archive.extractfile(member)
             if extracted is None:
                 continue
-            yield from _iter_member(extracted, member.name)
+            yield from _iter_member(
+                extracted, member.name, empty_text_policy, report
+            )
 
 
-def _iter_member(stream: BinaryIO, name: str) -> Iterator[WikiDocument]:
+def _iter_member(
+    stream: BinaryIO,
+    name: str,
+    empty_text_policy: str,
+    report: CorpusReadReport,
+) -> Iterator[WikiDocument]:
     binary: BinaryIO
     if name.casefold().endswith(".bz2"):
         binary = bz2.BZ2File(stream)
     else:
         binary = stream
     with io.TextIOWrapper(binary, encoding="utf-8") as text_stream:
-        yield from _iter_jsonl(text_stream, name)
+        yield from _iter_jsonl(text_stream, name, empty_text_policy, report)
 
 
-def _iter_jsonl(stream: TextIO, source_name: str) -> Iterator[WikiDocument]:
+def _iter_jsonl(
+    stream: TextIO,
+    source_name: str,
+    empty_text_policy: str,
+    report: CorpusReadReport,
+) -> Iterator[WikiDocument]:
     for line_number, line in enumerate(stream, start=1):
         if not line.strip():
             continue
@@ -294,7 +338,25 @@ def _iter_jsonl(stream: TextIO, source_name: str) -> Iterator[WikiDocument]:
             raw = json.loads(line)
             if not isinstance(raw, Mapping):
                 raise ValueError("record must be a mapping")
-            yield WikiDocument.from_mapping(raw)
+            report.records_seen += 1
+            document = WikiDocument.from_mapping(raw, allow_empty_text=True)
+            if not document.text:
+                if empty_text_policy == "error":
+                    raise ValueError(
+                        f"{document.title}: Wikipedia text cannot be empty"
+                    )
+                report.skipped_empty_text.append(
+                    {
+                        "wiki_id": document.wiki_id,
+                        "title": document.title,
+                        "source": source_name,
+                        "line": line_number,
+                        "reason": "empty_text",
+                    }
+                )
+                continue
+            report.documents_yielded += 1
+            yield document
         except (json.JSONDecodeError, ValueError) as error:
             raise ValueError(f"{source_name}:{line_number}: {error}") from error
 

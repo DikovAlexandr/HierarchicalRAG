@@ -53,6 +53,16 @@ Required fields: ID, date, owner, status, decision, alternatives, evidence, expe
 - **Impact:** E1 will measure paragraph and supporting-fact Recall@k on the full validation retrieval setting before any reader comparison. No Table 1 model result follows from this decision or the fixture smoke test. Dense retrieval remains a planned ablation only if the frozen BM25 baseline is retrieval-limited. Removing title weighting avoids an unmotivated tuning parameter.
 - **Revisit when:** the verified full corpus and index do not fit the recorded storage budget, construction is not practically recoverable on the cluster, or E1 recall is insufficient. Any tokenizer, field weighting, backend, or dense-retrieval replacement requires a superseding decision before reindexing or confirmatory runs.
 
+### D006 — Preserve title case and explicitly exclude empty fullwiki records
+
+- **Date / owner:** 2026-07-23 / alexander_dikov.
+- **Status:** accepted; supersedes only the identifier and empty-record handling in D005.
+- **Decision:** use the NFKC- and whitespace-normalized title with original case as the benchmark document identifier, and retain the official Wikipedia page ID as a separate immutable source key. Exclude a record only when the official plain `text` field is empty after the documented sentence join. Do not substitute `text_with_links`. Require the full build to observe exactly 5,233,329 source records and 94 empty-text exclusions; otherwise fail before publishing the index. Record every excluded page ID, title, source shard, line, and reason in the index manifest.
+- **Alternatives:** continue using a case-folded title; use only the Wikipedia page ID; keep an empty FTS document; derive text by stripping links from `text_with_links`; silently skip invalid rows.
+- **Evidence:** a complete streaming audit of the checksum-verified official archive found 5,233,329 records, 94 empty `text` fields, 2,637 case-folded-title collision occurrences, zero exact normalized-title collisions, zero duplicate Wikipedia IDs, and no invalid titles or IDs. The first full build correctly stopped on `2006 in organized crime` rather than hiding the anomaly. Its `text` is empty while `text_with_links` contains only an external empty anchor, so substituting that field would invent a preprocessing rule without useful text.
+- **Impact:** index schema v2 contains 5,233,235 searchable documents if and only if the audited counts are reproduced. Retrieved document identifiers remain directly comparable with case-sensitive HotpotQA supporting titles. E1 must report whether any gold supporting title belongs to the 94 exclusions. Existing schema-v1 indexes cannot be used for E1.
+- **Revisit when:** a checksum-identical rebuild produces different counts, an official HotpotQA evaluator requires another title mapping, or a gold supporting title is absent because of an excluded empty record. Any replacement rule requires a superseding decision before E1.
+
 ## New decision template
 
 ### DXXX — Short title

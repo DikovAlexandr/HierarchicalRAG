@@ -7,18 +7,25 @@ official_documentation: https://hotpotqa.github.io/wiki-readme.html
 archive_name: enwiki-20171001-pages-meta-current-withlinks-abstracts.tar.bz2
 archive_size_bytes: 1553565403
 official_md5: 01edf64cd120ecc03a2745352779514c
+archive_sha256: 1acca1c5cc93c4890ea51091d2bad7c3ef6987aead127ab88728dc9e26555729
+acquired_on: 2026-07-23
 license: CC-BY-SA-4.0
 index_text_field: text
 excluded_index_field: text_with_links
-document_identifier: nfkc_whitespace_casefold_title
+document_identifier: nfkc_whitespace_preserve_case_title
+source_key: wikipedia_page_id
 index_backend: sqlite_fts5
-index_schema_version: 1
+index_schema_version: 2
 fts5_tokenizer: unicode61 remove_diacritics 2
 ranking: sqlite_fts5_bm25
 bm25_k1: 1.2
 bm25_b: 0.75
 query_operator: OR over unique tokenized terms
 title_indexed_separately: false
+source_record_count: 5233329
+empty_text_policy: skip_and_record
+expected_empty_text_count: 94
+expected_indexed_document_count: 5233235
 local_raw_path: data/raw/hotpotqa/enwiki-20171001-pages-meta-current-withlinks-abstracts.tar.bz2
-local_index_path: artifacts/indexes/hotpotqa-fullwiki-fts5-v1.sqlite3
-status: source_pinned_not_downloaded
+local_index_path: artifacts/indexes/hotpotqa-fullwiki-fts5-v2.sqlite3
+status: verified_downloaded_not_indexed
