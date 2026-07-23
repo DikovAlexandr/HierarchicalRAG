@@ -17,7 +17,7 @@ from hierarchical_rag.fullwiki import (
     build_fts5_index,
     fts5_available,
 )
-from hierarchical_rag.run_e1 import execute
+from hierarchical_rag.run_e1 import _verify_prerequisite_smoke, execute
 
 
 @pytest.mark.skipif(not fts5_available(), reason="SQLite lacks FTS5")
@@ -61,7 +61,51 @@ def test_e1_preserves_failure_when_top_k_cannot_be_filled(tmp_path):
     assert manifest["extra"]["status"] == "failed"
 
 
-def _write_fixture(tmp_path: Path, document_count: int) -> tuple[Path, Path]:
+@pytest.mark.skipif(not fts5_available(), reason="SQLite lacks FTS5")
+def test_e1_parallel_ranking_exactly_matches_declared_reference(tmp_path):
+    sequential_config, sequential_output = _write_fixture(
+        tmp_path / "sequential", document_count=10
+    )
+    execute(
+        sequential_config,
+        load_experiment_config(sequential_config),
+        Path.cwd(),
+    )
+    reference = sequential_output / "retrieval.jsonl"
+    parallel_config, parallel_output = _write_fixture(
+        tmp_path / "parallel",
+        document_count=10,
+        workers=2,
+        ranking_reference=reference,
+    )
+
+    execute(
+        parallel_config,
+        load_experiment_config(parallel_config),
+        Path.cwd(),
+    )
+
+    metrics = json.loads(
+        (parallel_output / "metrics.json").read_text(encoding="utf-8")
+    )
+    manifest = json.loads(
+        (parallel_output / "manifest.json").read_text(encoding="utf-8")
+    )
+    assert metrics["ranking_equivalence"]["status"] == "exact_match"
+    assert metrics["runtime"]["retrieval_workers"] == 2
+    _verify_prerequisite_smoke(
+        parallel_output, "e1-test", manifest["git_commit"]
+    )
+
+
+def _write_fixture(
+    tmp_path: Path,
+    document_count: int,
+    *,
+    workers: int = 1,
+    ranking_reference: Path | None = None,
+) -> tuple[Path, Path]:
+    tmp_path.mkdir(parents=True, exist_ok=True)
     dataset_path = tmp_path / "fullwiki.json"
     index_path = tmp_path / "index.sqlite3"
     index_manifest_path = tmp_path / "index.manifest.json"
@@ -148,10 +192,16 @@ def _write_fixture(tmp_path: Path, document_count: int) -> tuple[Path, Path]:
         },
         "runtime": {
             "require_clean_worktree": False,
+            "retrieval_workers": workers,
             "dependency_lock_file": str(lock_path),
             "dependency_lock_sha256": sha256_file(lock_path),
             "output_dir": str(output),
         },
     }
+    if ranking_reference is not None:
+        config["runtime"]["ranking_equivalence_reference"] = {
+            "retrieval_file": str(ranking_reference),
+            "sha256": sha256_file(ranking_reference),
+        }
     config_path.write_text(yaml.safe_dump(config), encoding="utf-8")
     return config_path, output

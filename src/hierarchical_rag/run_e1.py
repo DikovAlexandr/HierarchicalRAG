@@ -9,11 +9,12 @@ import platform
 import shlex
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from pathlib import Path
 from statistics import fmean
 from time import perf_counter
-from typing import Any, Mapping, Sequence
+from typing import Any, Iterator, Mapping, Sequence
 
 import yaml
 
@@ -36,6 +37,7 @@ from hierarchical_rag.hotpotqa import (
     deterministic_slice,
     load_hotpotqa,
 )
+from hierarchical_rag.retrieval import ScoredDocument
 from hierarchical_rag.statistics import bootstrap_mean
 
 
@@ -75,6 +77,17 @@ def execute(
     if runtime.get("require_clean_worktree", False) and status_before:
         raise RuntimeError("E1 requires a clean Git worktree")
     revision = git_revision(repository_root)
+    prerequisite_smoke = runtime.get("prerequisite_smoke")
+    prerequisite_smoke_path: Path | None = None
+    if prerequisite_smoke is not None:
+        if not isinstance(prerequisite_smoke, str) or not prerequisite_smoke:
+            raise ValueError("runtime.prerequisite_smoke must be an experiment ID")
+        prerequisite_smoke_path = (
+            repository_root / "results" / "runs" / prerequisite_smoke
+        ).resolve()
+        _verify_prerequisite_smoke(
+            prerequisite_smoke_path, prerequisite_smoke, revision
+        )
 
     dataset_path = _resolve_path(repository_root, dataset["source_file"])
     index_path = _resolve_path(repository_root, retriever["index_file"])
@@ -86,6 +99,15 @@ def execute(
     _verify_checksum(index_path, retriever["index_sha256"])
     _verify_checksum(index_manifest_path, retriever["index_manifest_sha256"])
     _verify_checksum(lock_path, runtime["dependency_lock_sha256"])
+    ranking_reference = runtime.get("ranking_equivalence_reference")
+    ranking_reference_path: Path | None = None
+    if ranking_reference is not None:
+        if not isinstance(ranking_reference, Mapping):
+            raise ValueError("ranking_equivalence_reference must be a mapping")
+        ranking_reference_path = _resolve_path(
+            repository_root, ranking_reference["retrieval_file"]
+        )
+        _verify_checksum(ranking_reference_path, ranking_reference["sha256"])
 
     output_dir = _resolve_path(repository_root, runtime["output_dir"])
     if experiment["stage"] == "confirmatory":
@@ -109,6 +131,14 @@ def execute(
         index_manifest_path
     )
     resolved["runtime"]["dependency_lock_path_resolved"] = str(lock_path)
+    if prerequisite_smoke_path is not None:
+        resolved["runtime"]["prerequisite_smoke_path_resolved"] = str(
+            prerequisite_smoke_path
+        )
+    if ranking_reference_path is not None:
+        resolved["runtime"]["ranking_equivalence_reference"][
+            "retrieval_path_resolved"
+        ] = str(ranking_reference_path)
     resolved_config_path = run_dir / "resolved-config.yaml"
     resolved_config_path.write_text(
         yaml.safe_dump(resolved, sort_keys=False, allow_unicode=True),
@@ -154,14 +184,24 @@ def execute(
         with Fts5BM25Index(index_path) as index:
             index_metadata = index.metadata()
             _validate_index_metadata(index_metadata, retriever)
-            metrics, statistics, timings = _run_retrieval(
-                index,
-                selected,
-                cutoffs,
-                run_dir / "retrieval.jsonl",
-                run_dir / "predictions.jsonl",
-                evaluation["statistics"],
+        metrics, statistics, timings = _run_retrieval(
+            index_path,
+            selected,
+            cutoffs,
+            run_dir / "retrieval.jsonl",
+            run_dir / "predictions.jsonl",
+            evaluation["statistics"],
+            workers=int(runtime.get("retrieval_workers", 1)),
+        )
+        if ranking_reference_path is not None:
+            _assert_ranking_equivalence(
+                ranking_reference_path, run_dir / "retrieval.jsonl"
             )
+            metrics["ranking_equivalence"] = {
+                "status": "exact_match",
+                "reference_sha256": ranking_reference["sha256"],
+                "fields": ["example_id", "rank", "document_id", "score"],
+            }
 
         metrics.update(
             {
@@ -188,6 +228,8 @@ def execute(
                 "status=complete",
             ]
         )
+        if ranking_reference_path is not None:
+            log_lines.append("ranking_equivalence=exact_match")
         (run_dir / "run.log").write_text(
             "\n".join(log_lines) + "\n", encoding="utf-8", newline="\n"
         )
@@ -207,6 +249,15 @@ def execute(
                     "index_sha256": sha256_file(index_path),
                     "index_manifest_sha256": sha256_file(index_manifest_path),
                     "dependency_lock_sha256": sha256_file(lock_path),
+                    **(
+                        {
+                            "ranking_reference_sha256": sha256_file(
+                                ranking_reference_path
+                            )
+                        }
+                        if ranking_reference_path is not None
+                        else {}
+                    ),
                 },
                 "index_build": index_manifest,
                 "file_inventory": file_inventory(
@@ -232,13 +283,17 @@ def execute(
 
 
 def _run_retrieval(
-    index: Fts5BM25Index,
+    index_path: Path,
     examples: Sequence[HotpotExample],
     cutoffs: Sequence[int],
     retrieval_path: Path,
     predictions_path: Path,
     statistics_config: Mapping[str, Any],
+    *,
+    workers: int,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    if workers < 1:
+        raise ValueError("runtime.retrieval_workers must be positive")
     recalls = {cutoff: [] for cutoff in cutoffs}
     fact_recalls = {cutoff: [] for cutoff in cutoffs}
     all_supporting = {cutoff: [] for cutoff in cutoffs}
@@ -248,7 +303,9 @@ def _run_retrieval(
     with retrieval_path.open("w", encoding="utf-8", newline="\n") as retrieval_stream, predictions_path.open(
         "w", encoding="utf-8", newline="\n"
     ) as prediction_stream:
-        for example in examples:
+        for example, ranking, latency in _rank_examples(
+            index_path, examples, max(cutoffs), workers
+        ):
             gold_titles = tuple(
                 dict.fromkeys(
                     canonical_title(fact.title) for fact in example.supporting_facts
@@ -259,9 +316,6 @@ def _run_retrieval(
             gold_facts = tuple(
                 canonical_title(fact.title) for fact in example.supporting_facts
             )
-            query_started = perf_counter()
-            ranking = index.search(example.question, top_k=max(cutoffs))
-            latency = perf_counter() - query_started
             latencies.append(latency)
             if len(ranking) != max(cutoffs):
                 raise RuntimeError(
@@ -350,6 +404,7 @@ def _run_retrieval(
     }
     timings = {
         "elapsed_seconds": elapsed,
+        "retrieval_workers": workers,
         "throughput_examples_per_second": len(examples) / elapsed,
         "latency_mean_seconds": fmean(latencies),
         "latency_p50_seconds": _quantile(latencies, 0.5),
@@ -357,6 +412,101 @@ def _run_retrieval(
         "peak_rss_bytes": _peak_rss_bytes(),
     }
     return aggregate, statistics, timings
+
+
+def _rank_examples(
+    index_path: Path,
+    examples: Sequence[HotpotExample],
+    top_k: int,
+    workers: int,
+) -> Iterator[tuple[HotpotExample, tuple[ScoredDocument, ...], float]]:
+    def search(
+        example: HotpotExample,
+    ) -> tuple[HotpotExample, tuple[ScoredDocument, ...], float]:
+        with Fts5BM25Index(index_path) as index:
+            query_started = perf_counter()
+            ranking = index.search(example.question, top_k=top_k)
+            latency = perf_counter() - query_started
+        return example, ranking, latency
+
+    if workers == 1:
+        with Fts5BM25Index(index_path) as index:
+            for example in examples:
+                query_started = perf_counter()
+                ranking = index.search(example.question, top_k=top_k)
+                latency = perf_counter() - query_started
+                yield example, ranking, latency
+        return
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        yield from executor.map(search, examples)
+
+
+def _assert_ranking_equivalence(reference: Path, candidate: Path) -> None:
+    if _ranking_signature(candidate) != _ranking_signature(reference):
+        raise RuntimeError(
+            "parallel ranking differs from the declared sequential reference"
+        )
+
+
+def _ranking_signature(path: Path) -> tuple[tuple[Any, ...], ...]:
+    signature: list[tuple[Any, ...]] = []
+    with path.open("r", encoding="utf-8") as stream:
+        for line_number, line in enumerate(stream, start=1):
+            row = json.loads(line)
+            retrieved = row.get("retrieved")
+            if not isinstance(retrieved, list):
+                raise ValueError(f"{path}:{line_number}: missing retrieved list")
+            signature.append(
+                (
+                    row.get("example_id"),
+                    tuple(
+                        (
+                            item.get("rank"),
+                            item.get("document_id"),
+                            item.get("score"),
+                        )
+                        for item in retrieved
+                    ),
+                )
+            )
+    return tuple(signature)
+
+
+def _verify_prerequisite_smoke(
+    run_dir: Path, experiment_id: str, revision: str
+) -> None:
+    manifest_path = run_dir / "manifest.json"
+    metrics_path = run_dir / "metrics.json"
+    with manifest_path.open("r", encoding="utf-8") as stream:
+        manifest = json.load(stream)
+    with metrics_path.open("r", encoding="utf-8") as stream:
+        metrics = json.load(stream)
+    if manifest.get("experiment_id") != experiment_id:
+        raise ValueError("prerequisite smoke experiment ID mismatch")
+    if manifest.get("git_commit") != revision:
+        raise ValueError("prerequisite smoke used a different Git commit")
+    extra = manifest.get("extra")
+    if not isinstance(extra, Mapping) or extra.get("status") != "complete":
+        raise ValueError("prerequisite smoke is not complete")
+    inventory = extra.get("file_inventory")
+    if not isinstance(inventory, list):
+        raise ValueError("prerequisite smoke has no file inventory")
+    recorded = {
+        item.get("path"): item.get("sha256")
+        for item in inventory
+        if isinstance(item, Mapping)
+    }
+    for name in ("metrics.json", "retrieval.jsonl"):
+        expected = recorded.get(name)
+        if not isinstance(expected, str):
+            raise ValueError(f"prerequisite smoke inventory omits {name}")
+        _verify_checksum(run_dir / name, expected)
+    equivalence = metrics.get("ranking_equivalence")
+    if (
+        not isinstance(equivalence, Mapping)
+        or equivalence.get("status") != "exact_match"
+    ):
+        raise ValueError("prerequisite smoke did not pass ranking equivalence")
 
 
 def _select_examples(

@@ -50,9 +50,14 @@ From a clean committed worktree in the pinned CPU container:
 
 ```text
 python -m hierarchical_rag.run_e1 --config experiments/configs/e1-hotpotqa-fullwiki-bm25-smoke-v1.yaml
-python -m hierarchical_rag.run_e1 --config experiments/configs/e1-hotpotqa-fullwiki-bm25-v1.yaml
+python -m hierarchical_rag.run_e1 --config experiments/configs/e1-hotpotqa-fullwiki-bm25-smoke-v2.yaml
+python -m hierarchical_rag.run_e1 --config experiments/configs/e1-hotpotqa-fullwiki-bm25-v2.yaml
 ```
 
-Both commands verify dataset, index, index-manifest, and dependency-lock
+All commands verify dataset, index, index-manifest, and dependency-lock
 checksums. E1 reports Recall@k, uncertainty, latency, throughput, and peak memory;
 answer EM/F1 remains explicitly not applicable until a reader is introduced.
+The sequential v1 smoke is the immutable ranking reference. The v2 smoke adds
+only eight-way CPU execution and must exactly match every v1 rank, document ID,
+and score before the v2 full run is allowed. The unexecuted full v1 config is
+retained as the preregistered sequential alternative.

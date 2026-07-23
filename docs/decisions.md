@@ -63,6 +63,16 @@ Required fields: ID, date, owner, status, decision, alternatives, evidence, expe
 - **Impact:** index schema v2 contains 5,233,235 searchable documents if and only if the audited counts are reproduced. Retrieved document identifiers remain directly comparable with case-sensitive HotpotQA supporting titles. E1 must report whether any gold supporting title belongs to the 94 exclusions. Existing schema-v1 indexes cannot be used for E1.
 - **Revisit when:** a checksum-identical rebuild produces different counts, an official HotpotQA evaluator requires another title mapping, or a gold supporting title is absent because of an excluded empty record. Any replacement rule requires a superseding decision before E1.
 
+### D007 — Parallelize E1 queries without changing retrieval
+
+- **Date / owner:** 2026-07-23 / alexander_dikov.
+- **Status:** accepted after the preregistered E1 smoke and before the full validation run.
+- **Decision:** execute independent fullwiki queries concurrently through read-only SQLite connections while preserving input-example order. Keep the schema-v2 index, question text, tokenizer, OR query, BM25 ranking, tie-breaking, and top-k unchanged. Before the full run, repeat the same 16-example smoke slice and require exact equality of document IDs, ranks, and scores against `e1-hotpotqa-fullwiki-bm25-smoke-v1`; timing fields are expected to differ.
+- **Alternatives:** run the full split sequentially; request a CPU cluster allocation; change the query by removing stopwords or tuning retrieval parameters.
+- **Evidence:** the clean-commit smoke at `04f5ced7d45b5c403395331e168e070e28fd3ba6` completed all provenance checks and measured 5.2929 seconds mean retrieval latency and 0.1889 examples/second over 16 examples. A sequential 7,405-example run is therefore estimated at 10.9 hours. Query changes are rejected because metrics have already been observed and D005 freezes the retrieval method.
+- **Impact:** only execution scheduling and throughput may change. A new v2 smoke/full config records the worker count; v1 raw outputs remain immutable. If ranking equivalence fails, the parallel result is invalid and the sequential implementation remains authoritative.
+- **Revisit when:** concurrent reads do not improve wall time, exceed available RAM, or change any ranking field.
+
 ## New decision template
 
 ### DXXX — Short title
