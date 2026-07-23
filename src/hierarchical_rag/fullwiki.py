@@ -76,12 +76,9 @@ def build_fts5_index(
     destination: str | Path,
     *,
     corpus_metadata: Mapping[str, Any],
-    title_weight: float = 2.0,
 ) -> dict[str, Any]:
     """Build an atomic immutable FTS5 index in deterministic input order."""
 
-    if title_weight <= 0:
-        raise ValueError("title_weight must be positive")
     output = Path(destination)
     if output.exists():
         raise FileExistsError(f"index already exists: {output}")
@@ -132,8 +129,9 @@ def build_fts5_index(
                 "ranking": "sqlite_fts5_bm25",
                 "bm25_k1": FTS5_K1,
                 "bm25_b": FTS5_B,
-                "title_weight": title_weight,
                 "body_weight": 1.0,
+                "indexed_field": "text",
+                "title_indexed_separately": False,
                 "query_operator": "OR over unique tokenized terms",
                 "corpus": dict(corpus_metadata),
             }
@@ -170,7 +168,6 @@ class Fts5BM25Index:
         metadata = self.metadata()
         if metadata.get("schema_version") != INDEX_SCHEMA_VERSION:
             raise ValueError("unsupported fullwiki index schema")
-        self.title_weight = float(metadata["title_weight"])
 
     def close(self) -> None:
         self.connection.close()
@@ -195,14 +192,14 @@ class Fts5BM25Index:
         rows = self.connection.execute(
             """
             SELECT d.document_id, d.title, d.body,
-                   bm25(documents_fts, ?, 1.0) AS raw_score
+                   bm25(documents_fts) AS raw_score
             FROM documents_fts
             JOIN documents AS d ON d.rowid = documents_fts.rowid
             WHERE documents_fts MATCH ?
             ORDER BY raw_score ASC, d.document_id ASC
             LIMIT ?
             """,
-            (self.title_weight, match_query, top_k),
+            (match_query, top_k),
         )
         return tuple(
             ScoredDocument(
@@ -254,7 +251,6 @@ def _create_schema(connection: sqlite3.Connection) -> None:
         );
 
         CREATE VIRTUAL TABLE documents_fts USING fts5(
-            title,
             body,
             content='documents',
             content_rowid='rowid',

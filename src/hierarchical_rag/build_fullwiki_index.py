@@ -29,7 +29,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--expected-size", type=int)
     parser.add_argument("--expected-md5")
     parser.add_argument("--max-documents", type=int)
-    parser.add_argument("--title-weight", type=float, default=2.0)
     return parser
 
 
@@ -68,7 +67,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         documents,
         args.index,
         corpus_metadata=corpus_metadata,
-        title_weight=args.title_weight,
     )
     elapsed = perf_counter() - started
     manifest = {

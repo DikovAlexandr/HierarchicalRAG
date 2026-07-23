@@ -68,7 +68,6 @@ def test_build_and_search_fts5_index(tmp_path):
         documents,
         index_path,
         corpus_metadata={"revision": "fixture-v1"},
-        title_weight=2.0,
     )
     with Fts5BM25Index(index_path) as index:
         ranking = index.search("Paris capital France", top_k=2)
@@ -80,6 +79,8 @@ def test_build_and_search_fts5_index(tmp_path):
     assert metadata["bm25_k1"] == FTS5_K1
     assert metadata["bm25_b"] == FTS5_B
     assert metadata["corpus"]["revision"] == "fixture-v1"
+    assert metadata["indexed_field"] == "text"
+    assert metadata["title_indexed_separately"] is False
 
 
 def test_index_refuses_duplicate_canonical_titles_and_preserves_failure(tmp_path):
