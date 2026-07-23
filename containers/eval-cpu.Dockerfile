@@ -12,7 +12,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY environments/eval-cpu.lock /tmp/eval-cpu.lock
-RUN python -m pip install --no-cache-dir --requirement /tmp/eval-cpu.lock
+RUN python -m pip install --no-cache-dir --only-binary=:all: \
+    --require-hashes --requirement /tmp/eval-cpu.lock
 
 WORKDIR /opt/hierarchical-rag
 COPY pyproject.toml README.md ./

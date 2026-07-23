@@ -7,7 +7,7 @@ The cluster contract keeps code, data, model, environment, and output revisions 
 - `eval-cpu` is the current Linux environment for data preparation, SQLite FTS5 retrieval, metrics, statistics, and CPU smoke tests.
 - A GPU/HRM image is intentionally not defined yet. It must pin the selected HRM repository/checkpoint, CUDA, PyTorch, FlashAttention, compiler, and GPU architecture after the HRM feasibility decision. Do not use the CPU image as evidence that HRM itself is reproducible.
 
-The CPU image uses Linux/amd64 Python 3.11.11 and an architecture-specific immutable base-image digest. Python packages are pinned in `environments/eval-cpu.lock`. The build embeds the exact project commit in `HIERARCHICAL_RAG_IMAGE_REVISION`.
+The CPU image uses Linux/amd64 Python 3.11.11 and an architecture-specific immutable base-image digest. Python wheels and their SHA256 hashes are pinned in `environments/eval-cpu.lock`; source distributions are rejected. The build embeds the exact project commit in `HIERARCHICAL_RAG_IMAGE_REVISION`.
 
 ## Build and verify
 
@@ -27,7 +27,7 @@ docker run --rm \
   --profile eval-cpu --repository-root /workspace
 ```
 
-The environment check fails if Linux, Python, FTS5, package versions, embedded image revision, or mounted repository revision differ. Push the image to an approved registry by digest or convert it to SIF; record the OCI digest or SIF SHA256 in every cluster run.
+The environment check fails if Linux, Python, FTS5, package versions, embedded image revision, or mounted repository revision differ. Push the image to an approved registry by digest or convert it to SIF; record the OCI digest or SIF SHA256 in every cluster run. A mutable image tag alone is not a valid environment identifier.
 
 ## Slurm and Apptainer
 

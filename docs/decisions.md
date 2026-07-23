@@ -43,6 +43,16 @@ Required fields: ID, date, owner, status, decision, alternatives, evidence, expe
 - **Impact:** distractor candidate-reranking numbers are exploratory diagnostics and cannot fill the primary HotpotQA cells in Table 1. Preparing a pinned corpus and index is required before E1; dense retrieval is an ablation only if BM25 recall is limiting. This decision does not change H1–H3, the benchmark, or the shared evaluation contract.
 - **Revisit when:** the official corpus cannot be obtained or indexed within the documented storage/compute budget; any replacement requires mentor confirmation and a superseding decision before confirmatory runs.
 
+### D005 — Use text-only SQLite FTS5 BM25 for the first fullwiki index
+
+- **Date / owner:** 2026-07-23 / alexander_dikov.
+- **Status:** accepted before the full corpus build and E1.
+- **Decision:** stream the official HotpotQA `enwiki-20171001` introduction archive and index only its plain `text` field. Store the NFKC-normalized, whitespace-normalized, case-folded title as the stable document identifier, but do not index or boost the title separately. Use SQLite FTS5 with `unicode61 remove_diacritics 2`, its fixed BM25 parameters (`k1=1.2`, `b=0.75`), and an OR query over unique tokenized question terms. Build the index atomically, record corpus and index checksums, and cache one immutable ranking per question for every reader.
+- **Alternatives:** a separate title field or title boost; the in-memory Python BM25 smoke implementation; Pyserini/Lucene; a dense retriever as the first fullwiki baseline.
+- **Evidence:** the official HotpotQA corpus specification identifies the 2017-10-01 Wikipedia snapshot, publishes the archive size and MD5, and instructs users to index `text` rather than `text_with_links`: https://hotpotqa.github.io/wiki-readme.html. SQLite documents the FTS5 BM25 constants and score ordering: https://sqlite.org/fts5.html. A four-document fixture completed in the pinned Linux/amd64 CPU container at commit `3ba9e13d88a5ccdd697faf6641a19733806d35ff`; all 41 tests passed, the environment check matched image and repository revisions, and the mismatch control failed as required. The fixture validates mechanics and portability only, not retrieval quality or full-corpus throughput. The local machine had 53.35 GiB free disk and 15,611 MiB RAM during the resource check, making a streaming disk-backed implementation preferable to an in-memory index.
+- **Impact:** E1 will measure paragraph and supporting-fact Recall@k on the full validation retrieval setting before any reader comparison. No Table 1 model result follows from this decision or the fixture smoke test. Dense retrieval remains a planned ablation only if the frozen BM25 baseline is retrieval-limited. Removing title weighting avoids an unmotivated tuning parameter.
+- **Revisit when:** the verified full corpus and index do not fit the recorded storage budget, construction is not practically recoverable on the cluster, or E1 recall is insufficient. Any tokenizer, field weighting, backend, or dense-retrieval replacement requires a superseding decision before reindexing or confirmatory runs.
+
 ## New decision template
 
 ### DXXX — Short title
