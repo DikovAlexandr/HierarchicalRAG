@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+import pytest
+
 from hierarchical_rag.hotpotqa import HotpotExample, Paragraph, gold_paragraphs
 from hierarchical_rag.hrm_text import (
     DIRECT_CONDITION,
     build_direct_prompt,
     extract_short_answer,
 )
+from hierarchical_rag.run_hrm_text_smoke import _validate_frozen_protocol
 
 
 def _examples(hotpot_records) -> tuple[HotpotExample, ...]:
@@ -97,3 +100,29 @@ def test_extract_short_answer_records_empty_output():
 
     assert extracted.answer is None
     assert extracted.status == "empty"
+
+
+def test_frozen_protocol_rejects_context_budget_overflow():
+    config = {
+        "experiment": {"stage": "train_only_interface_smoke"},
+        "dataset": {
+            "split": "train",
+            "evidence": "gold_supporting_paragraphs_in_original_context_order",
+        },
+        "model": {
+            "frozen": True,
+            "dtype": "bfloat16",
+            "max_position_embeddings": 4096,
+        },
+        "prompt": {
+            "condition": "direct",
+            "condition_token": DIRECT_CONDITION,
+            "do_sample": False,
+            "prefixlm_token_type_ids": "all_prompt_positions_one",
+            "max_input_tokens": 4033,
+            "max_new_tokens": 64,
+        },
+    }
+
+    with pytest.raises(ValueError, match="exceed"):
+        _validate_frozen_protocol(config)

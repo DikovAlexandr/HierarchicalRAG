@@ -5,7 +5,7 @@ The cluster contract keeps code, data, model, environment, and output revisions 
 ## Environment split
 
 - `eval-cpu` is the current Linux environment for data preparation, SQLite FTS5 retrieval, metrics, statistics, and CPU smoke tests.
-- A GPU/HRM image is intentionally not defined yet. It must pin the selected HRM repository/checkpoint, CUDA, PyTorch, FlashAttention, compiler, and GPU architecture after the HRM feasibility decision. Do not use the CPU image as evidence that HRM itself is reproducible.
+- `hrm-text-gpu` uses the immutable PyTorch 2.5.1 CUDA 12.1 image digest recorded in the experiment config, the hash-pinned `environments/hrm-text-gpu.lock`, and the exact `sapientinc/HRM-Text-1B` checkpoint revision. The job must receive the clean Git SHA through `HIERARCHICAL_RAG_SOURCE_REVISION`; the runner verifies all local input hashes and records the resolved model revision and GPU before accepting a run.
 
 The CPU image uses Linux/amd64 Python 3.11.11 and an architecture-specific immutable base-image digest. Python wheels and their SHA256 hashes are pinned in `environments/eval-cpu.lock`; source distributions are rejected. The build embeds the exact project commit in `HIERARCHICAL_RAG_IMAGE_REVISION`.
 
@@ -46,6 +46,19 @@ sbatch --output="${RESULTS_ROOT}/slurm-%j.out" \
 ```
 
 Cluster-specific partition, account, QoS, wall-time, CPU, RAM, and GPU requests must be supplied by the operator or scheduler profile and recorded with the run. Never place secrets, datasets, indexes, or model weights inside Git or the container build context.
+
+## Yandex DataSphere
+
+DataSphere job definitions are versioned under `cluster/datasphere/`. Run them only from a clean committed worktree, exporting the full source SHA without storing credentials in the repository:
+
+```bash
+export HIERARCHICAL_RAG_SOURCE_REVISION="$(git rev-parse HEAD)"
+datasphere --profile <profile> project job execute \
+  -p <project-id> \
+  -c cluster/datasphere/p1-hrm-text-gold-train-smoke-v1.yaml
+```
+
+The job definition uploads only declared code, configuration, lock, and ignored processed inputs, then downloads all nine required run records. Preserve failed jobs and their logs; never rerun or alter the prompt because an observed answer is inconvenient.
 
 ## Fullwiki storage
 

@@ -1,0 +1,46 @@
+schema_version: 1
+dataset: HotpotQA
+config: distractor
+split: train
+retrieved_from: https://huggingface.co/datasets/hotpotqa/hotpot_qa
+retrieved_revision: 1908d6afbbead072334abe2965f91bd2709910ab
+license: CC-BY-SA-4.0
+acquired_on: 2026-07-24
+source_example_count: 90447
+source_files:
+  - path: data/raw/hotpotqa/distractor-train-1908d6a/train-00000-of-00002.parquet
+    size_bytes: 165624177
+    example_count: 45224
+    sha256: 76d3bb3048a7cc73c1958107c0c5872a00d7e7d00c105b81e92f6769e7822e68
+  - path: data/raw/hotpotqa/distractor-train-1908d6a/train-00001-of-00002.parquet
+    size_bytes: 166162479
+    example_count: 45223
+    sha256: 713661628434fbb19fff7392e2e321e4ed107e3c7c7784d0690946e5f722763f
+preprocessing:
+  code_revision: f99c93c46366b98e1692e2ec1c0fdbca6a07d286
+  command: >-
+    PYTHONPATH=src python -m hierarchical_rag.prepare_hotpotqa
+    --input data/raw/hotpotqa/distractor-train-1908d6a/train-00000-of-00002.parquet
+    data/raw/hotpotqa/distractor-train-1908d6a/train-00001-of-00002.parquet
+    --output data/processed/hotpotqa/train-distractor-s42-n18.json
+    --manifest data/processed/hotpotqa/train-distractor-s42-n18.manifest.json
+    --size 18 --seed 42
+    --source-url https://huggingface.co/datasets/hotpotqa/hotpot_qa
+    --source-revision 1908d6afbbead072334abe2965f91bd2709910ab
+    --license CC-BY-SA-4.0 --retrieved-at 2026-07-24
+  selection: sha256(seed + NUL + example_id)
+  seed: 42
+  output_path: data/processed/hotpotqa/train-distractor-s42-n18.json
+  output_size_bytes: 128631
+  output_sha256: 2fc88b5a1c96f784ddc0486459b10c4c283079eb4a31df2e73dd2ae0800374e7
+  manifest_path: data/processed/hotpotqa/train-distractor-s42-n18.manifest.json
+  manifest_size_bytes: 5575
+  manifest_sha256: 898ff23801daaeb3577f4b0d088ab20286a66404d8aff2a252242428cb7d009e
+  selected_example_count: 18
+  demonstration_count: 2
+  evaluated_count: 16
+  source_annotation_issue_count: 22
+  selected_annotation_issue_count: 0
+usage_restriction: >-
+  Train-only interface development. These examples must not support validation,
+  hypothesis, baseline-comparison, or article-result claims.

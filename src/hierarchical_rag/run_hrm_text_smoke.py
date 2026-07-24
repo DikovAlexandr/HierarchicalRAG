@@ -29,7 +29,11 @@ from hierarchical_rag.experiment import (
     write_json_atomic,
 )
 from hierarchical_rag.hotpotqa import gold_paragraphs, load_hotpotqa
-from hierarchical_rag.hrm_text import build_direct_prompt, extract_short_answer
+from hierarchical_rag.hrm_text import (
+    DIRECT_CONDITION,
+    build_direct_prompt,
+    extract_short_answer,
+)
 from hierarchical_rag.metrics import aggregate_answer_metrics, answer_score
 
 
@@ -51,6 +55,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     model_config = config["model"]
     prompt_config = config["prompt"]
     runtime = config["runtime"]
+    _validate_frozen_protocol(config)
 
     revision = _source_revision()
     dataset_path = _resolve(root, dataset_config["source_file"])
@@ -220,6 +225,13 @@ def _run_model(
         raise RuntimeError("resolved model revision differs from the config")
     if model.config.model_type != "hrm_text":
         raise RuntimeError("loaded model is not native hrm_text")
+    parameter_count = sum(parameter.numel() for parameter in model.parameters())
+    if parameter_count != int(model_config["parameter_count_expected"]):
+        raise RuntimeError("model parameter count differs from the config")
+    if int(model.config.max_position_embeddings) != int(
+        model_config["max_position_embeddings"]
+    ):
+        raise RuntimeError("model context length differs from the config")
 
     predictions: dict[str, str] = {}
     latencies: list[float] = []
@@ -337,6 +349,8 @@ def _run_model(
         "experiment_id": experiment_id,
         "status": "exploratory_train_only",
         "evaluated_count": len(targets),
+        "valid_extraction_count": len(targets) - invalid_count,
+        "valid_extraction_rate": (len(targets) - invalid_count) / len(targets),
         "answer_exact_match": aggregate.exact_match,
         "answer_f1": aggregate.f1,
         "answer_precision": aggregate.precision,
@@ -365,13 +379,41 @@ def _run_model(
         "model_revision": getattr(model.config, "_commit_hash", None),
         "model_type": model.config.model_type,
         "model_dtype": str(model.dtype),
-        "parameter_count": sum(parameter.numel() for parameter in model.parameters()),
+        "parameter_count": parameter_count,
         "max_position_embeddings": int(model.config.max_position_embeddings),
         "gpu_name": device.name,
         "gpu_total_memory_bytes": int(device.total_memory),
         "gpu_compute_capability": list(torch.cuda.get_device_capability(0)),
     }
     return metrics, environment
+
+
+def _validate_frozen_protocol(config: Mapping[str, Any]) -> None:
+    experiment = config["experiment"]
+    dataset = config["dataset"]
+    model = config["model"]
+    prompt = config["prompt"]
+    if experiment["stage"] != "train_only_interface_smoke":
+        raise ValueError("this runner is restricted to the train-only interface smoke")
+    if dataset["split"] != "train" or dataset["evidence"] != (
+        "gold_supporting_paragraphs_in_original_context_order"
+    ):
+        raise ValueError("D009 requires train-only gold evidence")
+    if not model["frozen"] or model["dtype"] != "bfloat16":
+        raise ValueError("D009 requires a frozen BF16 model")
+    if (
+        prompt["condition"] != "direct"
+        or prompt["condition_token"] != DIRECT_CONDITION
+    ):
+        raise ValueError("D009 requires the declared direct condition token")
+    if prompt["do_sample"] is not False:
+        raise ValueError("D009 requires greedy decoding")
+    if prompt["prefixlm_token_type_ids"] != "all_prompt_positions_one":
+        raise ValueError("D009 requires PrefixLM token type IDs")
+    if int(prompt["max_input_tokens"]) + int(prompt["max_new_tokens"]) > int(
+        model["max_position_embeddings"]
+    ):
+        raise ValueError("input and generation budgets exceed the model context length")
 
 
 def _source_revision() -> str:
