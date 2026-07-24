@@ -108,7 +108,11 @@ def _run_model(
         raise RuntimeError("loaded model architecture differs from the config")
     parameter_count = sum(parameter.numel() for parameter in model.parameters())
     if parameter_count != int(model_config["parameter_count_expected"]):
-        raise RuntimeError("model parameter count differs from the config")
+        raise RuntimeError(
+            "model parameter count differs from the config: "
+            f"observed={parameter_count}, "
+            f"expected={model_config['parameter_count_expected']}"
+        )
     max_position_embeddings = _max_position_embeddings(model.config)
     if max_position_embeddings != int(model_config["max_position_embeddings"]):
         raise RuntimeError("model context length differs from the config")
@@ -299,6 +303,9 @@ def _run_model(
         "model_backend": backend,
         "model_dtype": str(model.dtype),
         "parameter_count": parameter_count,
+        "checkpoint_tensor_element_count": int(
+            model_config["checkpoint_tensor_element_count"]
+        ),
         "language_model_parameter_count": language_model_parameter_count,
         "max_position_embeddings": max_position_embeddings,
         "decoding": dict(prompt_config["decoding"]),

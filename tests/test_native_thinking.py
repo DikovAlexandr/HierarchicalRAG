@@ -14,10 +14,13 @@ from hierarchical_rag.native_thinking import (
 def _config(model_id: str) -> dict:
     protocol = MODEL_PROTOCOLS[model_id]
     example_ids = [f"example-{index:02d}" for index in range(18)]
+    decision_ids = ["D001", "D013", "D014"]
+    if model_id.startswith("Qwen/Qwen3.5-"):
+        decision_ids.append("D015")
     return {
         "experiment": {
             "stage": "train_only_native_thinking_smoke",
-            "decision_ids": ["D001", "D013", "D014"],
+            "decision_ids": decision_ids,
             "seeds": [0],
         },
         "dataset": {
@@ -36,6 +39,9 @@ def _config(model_id: str) -> dict:
             "backend": protocol["backend"],
             "role": protocol["role"],
             "parameter_count_expected": protocol["parameter_count_expected"],
+            "checkpoint_tensor_element_count": protocol[
+                "checkpoint_tensor_element_count"
+            ],
             "max_position_embeddings": protocol["max_position_embeddings"],
             "frozen": True,
             "dtype": "bfloat16",
@@ -74,6 +80,14 @@ def test_native_protocol_rejects_disabled_qwen_thinking():
     config["prompt"]["chat_template_kwargs"]["enable_thinking"] = False
 
     with pytest.raises(ValueError, match="thinking mode"):
+        validate_native_thinking_protocol(config)
+
+
+def test_native_protocol_rejects_qwen_without_count_decision():
+    config = _config("Qwen/Qwen3.5-2B")
+    config["experiment"]["decision_ids"].remove("D015")
+
+    with pytest.raises(ValueError, match="must cite D015"):
         validate_native_thinking_protocol(config)
 
 

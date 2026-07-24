@@ -143,6 +143,16 @@ Required fields: ID, date, owner, status, decision, alternatives, evidence, expe
 - **Impact:** all D013 rows are evaluated under the same maximum total tokens and explicit failure accounting, but their native sampling parameters differ and must be reported as a limitation rather than described as identical decoding. Qwen3.5 is intentionally a resource-bounded contemporary reference; failure to terminate within 512 tokens is part of its efficiency result. Moving from 128 to 512 output tokens can increase reader cost substantially, so throughput and generated-token counts are mandatory. No validation run may be used to tune the cap, sampler, prompt, or parser.
 - **Revisit when:** any D013 train-only gate exhausts the cap or fails parsing. A change must preserve the failed output and either keep the 4,096-token total by trading input for output, or exclude the model from the primary panel with a documented feasibility result; it must not grant one model a larger total budget.
 
+### D015 — Separate Qwen checkpoint tensor elements from model parameters
+
+- **Date / owner:** 2026-07-25 / alexander_dikov.
+- **Status:** accepted after the Qwen3.5-0.8B v1 compatibility job failed its pre-generation parameter-count assertion and before any Qwen3.5 generation or Qwen3.5-2B job.
+- **Decision:** preserve `p1-qwen3.5-0.8b-thinking-gold-train-smoke-v1` as a failed technical run and use v2 configurations for both Qwen sizes. Compare `model.parameters()` with the BF16 parameter count reported by the pinned Hugging Face metadata: 873,436,192 for 0.8B and 2,274,067,232 for 2B. Separately record the checkpoint tensor-element totals of 873,438,784 and 2,274,069,824. The 2,592-element difference in each checkpoint is its reported F32 tensor component and must not be mislabeled as a model parameter. Do not change the checkpoint, prompt, data, sampler, seed, budget, or gate.
+- **Alternatives:** disable the count assertion; compare `model.parameters()` with the aggregate checkpoint total; omit the 2,592-element difference; run the uncorrected 2B v1 configuration.
+- **Evidence:** the pinned Hugging Face API metadata reports `BF16=873436192`, `F32=2592`, and `total=873438784` for Qwen3.5-0.8B, and `BF16=2274067232`, `F32=2592`, and `total=2274069824` for Qwen3.5-2B. Job `bt13k6et6kd9uko8khl5` loaded all 473 checkpoint tensors and then failed before generation because v1 compared `model.parameters()` with the aggregate tensor total. Its empty predictions, traceback, resolved config, and logs are preserved.
+- **Impact:** v2 corrects measurement semantics only. Parameter ratios to HRM use the model-parameter count; reports may also show checkpoint tensor elements with an explicit label. The failed v1 run is not a model feasibility result and cannot be used in quality comparisons.
+- **Revisit when:** the pinned runtime reports a model-parameter count different from the BF16 metadata count, or upstream metadata changes at the pinned revision.
+
 ## New decision template
 
 ### DXXX — Short title

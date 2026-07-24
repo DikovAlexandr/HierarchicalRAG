@@ -21,6 +21,7 @@ MODEL_PROTOCOLS: dict[str, dict[str, Any]] = {
         "backend": "causal_lm_tokenizer",
         "role": "primary_size_matched_cot_baseline",
         "parameter_count_expected": 1_170_340_608,
+        "checkpoint_tensor_element_count": 1_170_340_608,
         "max_position_embeddings": 128_000,
         "chat_template_kwargs": {},
         "decoding": {
@@ -35,7 +36,8 @@ MODEL_PROTOCOLS: dict[str, dict[str, Any]] = {
         "architecture": "qwen3_5",
         "backend": "multimodal_lm_processor_text_only",
         "role": "contemporary_cot_reference",
-        "parameter_count_expected": 2_274_069_824,
+        "parameter_count_expected": 2_274_067_232,
+        "checkpoint_tensor_element_count": 2_274_069_824,
         "max_position_embeddings": 262_144,
         "chat_template_kwargs": {"enable_thinking": True},
         "decoding": {
@@ -53,7 +55,8 @@ MODEL_PROTOCOLS: dict[str, dict[str, Any]] = {
         "architecture": "qwen3_5",
         "backend": "multimodal_lm_processor_text_only",
         "role": "lower_scale_cot_control",
-        "parameter_count_expected": 873_438_784,
+        "parameter_count_expected": 873_436_192,
+        "checkpoint_tensor_element_count": 873_438_784,
         "max_position_embeddings": 262_144,
         "chat_template_kwargs": {"enable_thinking": True},
         "decoding": {
@@ -127,6 +130,10 @@ def validate_native_thinking_protocol(config: Mapping[str, Any]) -> None:
     model_id = model["id"]
     if model_id not in MODEL_PROTOCOLS:
         raise ValueError(f"model is not preregistered by D013: {model_id}")
+    if model_id.startswith("Qwen/Qwen3.5-") and "D015" not in set(
+        experiment["decision_ids"]
+    ):
+        raise ValueError("Qwen3.5 configs with corrected counts must cite D015")
     expected = MODEL_PROTOCOLS[model_id]
     for field in (
         "revision",
@@ -138,6 +145,12 @@ def validate_native_thinking_protocol(config: Mapping[str, Any]) -> None:
     ):
         if model[field] != expected[field]:
             raise ValueError(f"{model_id}: {field} differs from D013")
+    checkpoint_elements = model.get(
+        "checkpoint_tensor_element_count",
+        model["parameter_count_expected"],
+    )
+    if checkpoint_elements != expected["checkpoint_tensor_element_count"]:
+        raise ValueError(f"{model_id}: checkpoint tensor count differs from D015")
     if not model["frozen"] or model["dtype"] != "bfloat16":
         raise ValueError("D013 requires a frozen BF16 checkpoint")
 
