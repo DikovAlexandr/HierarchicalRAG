@@ -113,6 +113,16 @@ Required fields: ID, date, owner, status, decision, alternatives, evidence, expe
 - **Impact:** v1 remains immutable and ineligible as the H1 CoT row. V2 changes one prompt factor and uses only existing benchmark annotations for its demonstration format. Target supporting-fact labels are never exposed as labels; both readers still receive the same target question and gold paragraphs. V2 quality metrics remain exploratory and cannot be compared as H1 evidence.
 - **Revisit when:** any v2 target lacks explicit reasoning or a parseable final line, exhausts 64 tokens, or requires target-evidence truncation. A further change requires a new decision and must remain train-only.
 
+### D012 — Reallocate the shared 4,096-token reader budget to 3,968 input plus 128 output tokens
+
+- **Date / owner:** 2026-07-24 / alexander_dikov.
+- **Status:** accepted after preserving D011 smoke v2 and before creating or running v3; no validation output has been observed.
+- **Decision:** keep the D011 Qwen model, demonstrations and deterministic rationales, 16 targets, evidence, chat template, parser, greedy decoding, seed, and hardware unchanged. For v3, change only the shared reader budget from 4,032 input plus 64 output tokens to 3,968 input plus 128 output tokens, preserving the HRM checkpoint's total 4,096-token limit. This 3,968+128 allocation becomes the candidate shared budget for both Qwen and HRM in E2; it is not baseline-only. Run Qwen v3 once on the same train targets. Require 16/16 explicit reasoning, 16/16 parseable final answers, zero generation-budget exhaustion, and zero target-evidence truncation.
+- **Alternatives:** accept truncated v2 answers; increase only the baseline budget; use 4,032+128 and exceed the HRM context; shorten or suppress CoT; edit individual responses; switch models; tune on validation.
+- **Evidence:** preserved DataSphere Job `bt1c2p26rlkjh25qicmc` at commit `1f3b055d41ca6991e3465dc462ecac69b5728140` emitted explicit reasoning on 16/16 train targets and truncated no input evidence, but four generations reached exactly 64 tokens and one lacked the required final marker. Inspection of the four preserved raw outputs showed normal non-repetitive reasoning cut at the token boundary; two scored answer strings were themselves visibly incomplete. Their input lengths were only 1,047–1,306 tokens, so reducing the unused input ceiling by 64 tokens cannot alter target evidence on this slice.
+- **Impact:** D011 v2 remains immutable and fails its interface gate. The larger output allowance is a fairness correction applied to both readers, not a quality-based exception for Qwen. HRM v1 ended all train generations after 3–11 tokens with inputs below 1,215 tokens, so no paid HRM rerun is required merely to establish that its preserved v1 outputs fit the candidate v3 allocation; the eventual shared E2 config must nevertheless declare 3,968+128 for both readers.
+- **Revisit when:** any v3 output still exhausts 128 tokens, lacks its final answer, or target evidence exceeds 3,968 tokens. Further budget or prompt changes require a new train-only decision.
+
 ## New decision template
 
 ### DXXX — Short title

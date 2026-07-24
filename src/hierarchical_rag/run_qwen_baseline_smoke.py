@@ -445,10 +445,12 @@ def _validate_frozen_protocol(config: Mapping[str, Any]) -> None:
         raise ValueError("prompt style and demonstration rationale differ")
     if prompt["do_sample"] is not False:
         raise ValueError("D010 requires greedy decoding")
-    if int(prompt["max_input_tokens"]) != 4032 or int(
-        prompt["max_new_tokens"]
-    ) != 64:
-        raise ValueError("D010 requires the shared 4032+64 token budget")
+    budget = (
+        int(prompt["max_input_tokens"]),
+        int(prompt["max_new_tokens"]),
+    )
+    if budget not in {(4032, 64), (3968, 128)}:
+        raise ValueError("reader budget must be preregistered as 4032+64 or 3968+128")
     if int(prompt["max_input_tokens"]) + int(prompt["max_new_tokens"]) > int(
         model["max_position_embeddings"]
     ):

@@ -155,5 +155,30 @@ def test_baseline_protocol_rejects_a_larger_generation_budget():
         },
     }
 
-    with pytest.raises(ValueError, match=r"4032\+64"):
+    with pytest.raises(ValueError, match="preregistered"):
         _validate_frozen_protocol(config)
+
+
+def test_baseline_protocol_accepts_shared_v3_budget():
+    config = {
+        "experiment": {"stage": "train_only_baseline_smoke"},
+        "dataset": {
+            "split": "train",
+            "evidence": "gold_supporting_paragraphs_in_original_context_order",
+        },
+        "model": {
+            "role": "primary_size_matched_cot_baseline",
+            "frozen": True,
+            "dtype": "bfloat16",
+            "max_position_embeddings": 32768,
+        },
+        "prompt": {
+            "style": "few_shot_supporting_fact_cot_final_answer",
+            "demonstration_rationale": "supporting_fact_sentences",
+            "do_sample": False,
+            "max_input_tokens": 3968,
+            "max_new_tokens": 128,
+        },
+    }
+
+    _validate_frozen_protocol(config)
