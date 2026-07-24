@@ -73,6 +73,16 @@ Required fields: ID, date, owner, status, decision, alternatives, evidence, expe
 - **Impact:** only execution scheduling and throughput may change. A new v2 smoke/full config records the worker count; v1 raw outputs remain immutable. If ranking equivalence fails, the parallel result is invalid and the sequential implementation remains authoritative.
 - **Revisit when:** concurrent reads do not improve wall time, exceed available RAM, or change any ranking field.
 
+### D008 — Use the official HRM-Text-1B checkpoint for the primary text track
+
+- **Date / owner:** 2026-07-24 / alexander_dikov.
+- **Status:** accepted after the P1 reference smoke and before implementing the text-reader adapter.
+- **Decision:** use `sapientinc/HRM-Text-1B` at Hugging Face revision `9f082d68b8cd0ebc56e33f1c88c45609174c272c` as the frozen HRM backbone for the primary text-RAG feasibility study. Run the native `hrm_text` implementation from Transformers 5.9.0 in BF16, preserve the checkpoint's PrefixLM interface by marking all prompt positions with `token_type_ids = 1`, and use deterministic greedy decoding for the first interface tests. The original puzzle-only HRM remains architectural background and is not treated as a natural-language reader.
+- **Alternatives:** build a new text tokenizer and decoder around the original 27M puzzle HRM; use an unofficial instruction-tuned HRM derivative; train HRM-Text from scratch; abandon the HRM text track.
+- **Evidence:** the official checkpoint documents a natural-language PrefixLM interface and a 4,096-token context. DataSphere Job `bt1h5hqe0qmi3fe9trpo` reproduced the official reference prompt on one A100-SXM4-80GB using checkpoint revision `9f082d68b8cd0ebc56e33f1c88c45609174c272c`, Transformers 5.9.0, PyTorch 2.5.1+cu121, and BF16. The resolved model type was `hrm_text`, the parameter count was 1,182,795,264, peak allocated generation memory was 2,451,062,272 bytes, and 84 tokens were generated in 8.80 seconds. This is an interface and resource result, not evidence of HotpotQA quality or H1.
+- **Impact:** P1 has a feasible, pinned text backbone and GPU environment. Before any E2 claim, the project must still freeze a shared evidence prompt, validate benchmark-compatible answer extraction on development data, select a defensible size-matched baseline, and run both readers on identical cached evidence and budgets. The reference output cannot populate an article result table.
+- **Revisit when:** the frozen checkpoint cannot reliably emit benchmark-compatible answers from the fixed evidence interface, its 4,096-token limit prevents a fair shared-context comparison, or a mentor-approved backbone change is supported by stronger feasibility evidence.
+
 ## New decision template
 
 ### DXXX — Short title
