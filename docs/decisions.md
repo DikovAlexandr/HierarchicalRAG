@@ -163,6 +163,16 @@ Required fields: ID, date, owner, status, decision, alternatives, evidence, expe
 - **Impact:** v3 fixes provenance and avoids a redundant paid 2B failure. Ratios to HRM use 0.7211610885 for 0.8B and 1.8711959131 for 2B. V1 and v2 remain technical failures with no generated outputs and no model-quality meaning.
 - **Revisit when:** v3 runtime counts differ, the selected inference class begins loading MTP as independent parameters, or a study explicitly evaluates MTP compute.
 
+### D017 — Run one final 2,048+2,048 train-only native-thinking gate
+
+- **Date / owner:** 2026-07-25 / alexander_dikov.
+- **Status:** accepted after all D013/D014 compatibility outputs were preserved and before any further reader run; HotpotQA validation remains unopened for reader development.
+- **Decision:** do not admit the 3,584+512 native-thinking runs to E2. Make exactly one final shared-budget feasibility attempt for each D013 model with at most 2,048 input tokens and 2,048 generated tokens, keeping the 4,096-token HRM ceiling, the same 16 train targets, two demonstrations, gold evidence, prompt, parser, model revisions, samplers, seed 0, and pass criteria. If a model still exhausts 2,048 tokens, truncates target evidence, or fails any final-answer/reasoning check, exclude it from the primary resource-matched E2 panel and report the feasibility limitation; do not tune another cap, prompt, parser, or sampler. Do not run HRM merely to repeat this interface gate, but declare the same 2,048+2,048 allocation if it becomes the frozen E2 contract.
+- **Alternatives:** treat exhausted outputs as zero-score E2 rows; keep 3,584+512; use model-specific budgets; allocate 1,536+2,560; follow Qwen's recommended 32,768 output tokens and abandon HRM resource matching; disable native thinking; replace models based on these train outputs; repeatedly increase the cap.
+- **Evidence:** LFM2.5 Job `bt1dipror73huuj1vdto` produced reasoning on 16/16 targets but exhausted 512 tokens on 14/16 and parsed 3/16 final answers. Qwen3.5-0.8B Job `bt1gb9128ffjohmbh7de` and Qwen3.5-2B Job `bt1koop4g9a97gdlm6fk` each produced reasoning on 16/16 but exhausted all 16 generations and parsed 0/16 final answers. All three had zero target-evidence truncation, complete manifests, and 16 prediction/retrieval records. Observed input lengths were 1,045–1,279 tokens for LFM and 1,070–1,332 for both Qwen models, so a 2,048 input ceiling preserves this gate's evidence with at least 716 tokens of measured headroom.
+- **Impact:** the completed 512-token runs are resource-feasibility results, not accuracy comparisons and not H1 evidence. The final gate can consume up to four times as many generated tokens and its cost/throughput must be retained. No validation, baseline selection by EM/F1, or article claim is authorized. If no current native-thinking model passes, the legacy Qwen2.5 instruct control remains preserved, but changing the mentor-facing baseline family requires discussion and a new decision.
+- **Revisit when:** any 2,048-input prompt truncates target evidence, the mentor changes the 4,096-token resource contract, or the final gate completes and the E2 panel must be frozen.
+
 ## New decision template
 
 ### DXXX — Short title
