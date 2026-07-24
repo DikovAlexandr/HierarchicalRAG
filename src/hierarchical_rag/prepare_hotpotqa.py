@@ -11,7 +11,6 @@ from hierarchical_rag.hotpotqa import (
     deterministic_slice,
     load_hotpotqa,
     sha256_file,
-    slice_manifest,
     supporting_fact_reference_issues,
     write_hotpotqa,
 )
@@ -21,7 +20,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Prepare a deterministic HotpotQA subset."
     )
-    parser.add_argument("--input", required=True, type=Path)
+    parser.add_argument("--input", required=True, type=Path, nargs="+")
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--manifest", required=True, type=Path)
     parser.add_argument("--size", required=True, type=int)
@@ -35,11 +34,51 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    examples = load_hotpotqa(args.input)
-    selected = deterministic_slice(examples, size=args.size, seed=args.seed)
+    candidates = []
+    source_files = []
+    source_issues = []
+    identifiers: set[str] = set()
+    source_count = 0
+    for source in args.input:
+        examples = load_hotpotqa(source)
+        duplicate_ids = identifiers.intersection(
+            example.identifier for example in examples
+        )
+        if duplicate_ids:
+            duplicate = min(duplicate_ids)
+            raise ValueError(f"duplicate example ID across inputs: {duplicate}")
+        identifiers.update(example.identifier for example in examples)
+        source_count += len(examples)
+        source_files.append(
+            {
+                "path": str(source),
+                "sha256": sha256_file(source),
+                "example_count": len(examples),
+            }
+        )
+        source_issues.extend(supporting_fact_reference_issues(examples))
+        candidates.extend(
+            deterministic_slice(
+                examples,
+                size=min(args.size, len(examples)),
+                seed=args.seed,
+            )
+        )
+
+    selected = deterministic_slice(candidates, size=args.size, seed=args.seed)
     write_hotpotqa(args.output, selected)
 
-    manifest = slice_manifest(args.input, selected, seed=args.seed)
+    manifest = {
+        "source_files": source_files,
+        "source_count": source_count,
+        "selection": "sha256(seed + NUL + example_id)",
+        "seed": args.seed,
+        "size": len(selected),
+        "example_ids": [example.identifier for example in selected],
+    }
+    if len(source_files) == 1:
+        manifest["source_path"] = source_files[0]["path"]
+        manifest["source_sha256"] = source_files[0]["sha256"]
     manifest["output_path"] = str(args.output)
     manifest["output_sha256"] = sha256_file(args.output)
     manifest["provenance"] = {
@@ -52,7 +91,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         }.items()
         if value is not None
     }
-    source_issues = supporting_fact_reference_issues(examples)
     selected_issues = supporting_fact_reference_issues(selected)
     manifest["annotation_validation"] = {
         "policy": (
