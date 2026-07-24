@@ -1,0 +1,99 @@
+schema_version: 1
+
+experiment:
+  id: p1-qwen2.5-cot-gold-train-smoke-v1
+  hypothesis_id: P1
+  decision_ids: [D001, D002, D008, D009, D010]
+  owner: alexander_dikov
+  stage: train_only_baseline_smoke
+  exact_command: PYTHONPATH=src python -m hierarchical_rag.run_qwen_baseline_smoke --config experiments/configs/p1-qwen2.5-cot-gold-train-smoke-v1.yaml
+  seeds: [0]
+  stopping_rule: Run the fixed 16 targets once; preserve every output and stop after reporting final-answer parseability, budget exhaustion, answer EM/F1, truncation, latency, throughput, generated tokens, and peak GPU memory.
+  exclusions: []
+  claim_scope: Exploratory train-only baseline feasibility; no H1, validation, HRM-comparison, or article-result claim.
+
+dataset:
+  name: hotpot_qa
+  config: distractor
+  split: train
+  source_revision: 1908d6afbbead072334abe2965f91bd2709910ab
+  source_file: data/processed/hotpotqa/train-distractor-s42-n18.json
+  source_sha256: 2fc88b5a1c96f784ddc0486459b10c4c283079eb4a31df2e73dd2ae0800374e7
+  manifest_file: data/processed/hotpotqa/train-distractor-s42-n18.manifest.json
+  manifest_sha256: 898ff23801daaeb3577f4b0d088ab20286a66404d8aff2a252242428cb7d009e
+  evidence: gold_supporting_paragraphs_in_original_context_order
+  selection:
+    method: deterministic_sha256
+    seed: 42
+    size: 18
+    demonstration_count: 2
+    evaluated_count: 16
+    example_ids:
+      - 5a8109535542995ce29dcba2
+      - 5ae062d95542993d6555eb36
+      - 5a7302895542992359bc31fc
+      - 5a9095bf55429933b8a20572
+      - 5a87b9955542996e4f3088ef
+      - 5adee1515542992d7e9f9263
+      - 5ab2fc3355429976abd1bbf0
+      - 5ae109f755429920d523429e
+      - 5a7a892a55429941d65f268d
+      - 5a8884f25542997e5c09a5ec
+      - 5ab3026c55429976abd1bc1c
+      - 5a8d54b055429941ae14dfa7
+      - 5adcc27c5542994ed6169bf1
+      - 5ab2b784554299545a2cfa1f
+      - 5ab6d9295542995eadef00c4
+      - 5a7ebff35542994959419a6e
+      - 5ab280b95542997061209642
+      - 5a79d0945542994f819ef0b9
+  leakage_note: Baseline prompt and parser development is confined to the unchanged D009 train slice; validation remains unopened for reader development.
+
+model:
+  id: Qwen/Qwen2.5-1.5B-Instruct
+  revision: 989aa7980e4cf806f80c7fef2b1adb7bc71aa306
+  architecture: qwen2
+  role: primary_size_matched_cot_baseline
+  parameter_count_expected: 1543714304
+  parameter_ratio_to_hrm: 1.3051407551
+  max_position_embeddings: 32768
+  dtype: bfloat16
+  torch_version: 2.5.1+cu121
+  transformers_version: 5.9.0
+  license: Apache-2.0
+  gated: false
+  frozen: true
+
+prompt:
+  template: checkpoint_native_chat_template
+  style: brief_explicit_cot_with_final_answer
+  final_answer_format: "Answer: <shortest answer>"
+  demonstration_count: 2
+  demonstration_ids: [5a8109535542995ce29dcba2, 5ae062d95542993d6555eb36]
+  max_input_tokens: 4032
+  max_new_tokens: 64
+  target_truncation: sentence_boundary_from_end_only
+  do_sample: false
+  temperature: not_applicable_greedy
+
+reader:
+  type: frozen_qwen_cot
+  answer_extraction: last_declared_answer_line_v1
+  semantic_postprocessing: forbidden
+
+evaluation:
+  primary_metric: valid_extraction_rate
+  secondary_metrics: [explicit_reasoning_rate, budget_exhausted_count, answer_exact_match, answer_f1, truncated_example_count, latency_seconds, throughput_examples_per_second, generated_tokens, peak_gpu_memory_bytes]
+  statistics:
+    status: not_applicable
+    reason: Train-only n=16 baseline interface smoke with no system comparison or confirmatory claim.
+
+runtime:
+  device: cuda
+  deterministic_decoding: true
+  tf32: false
+  dependency_lock_file: environments/hrm-text-gpu.lock
+  dependency_lock_sha256: 6837758e40ed412b567ac445af3ae78eb4d34898a0dbd261672b8d078be6785b
+  container_image: pytorch/pytorch:2.5.1-cuda12.1-cudnn9-runtime@sha256:831247999fbf7e08f61b3e39f6d77ee434f38f6f07f769d00db451e853878067
+  expected_hardware: Yandex DataSphere g2.1, one NVIDIA A100 80GB
+  output_dir: results/runs/p1-qwen2.5-cot-gold-train-smoke-v1
