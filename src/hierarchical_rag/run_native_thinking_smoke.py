@@ -306,6 +306,9 @@ def _run_model(
         "checkpoint_tensor_element_count": int(
             model_config["checkpoint_tensor_element_count"]
         ),
+        "mtp_checkpoint_tensor_element_count": int(
+            model_config.get("mtp_checkpoint_tensor_element_count", 0)
+        ),
         "language_model_parameter_count": language_model_parameter_count,
         "max_position_embeddings": max_position_embeddings,
         "decoding": dict(prompt_config["decoding"]),

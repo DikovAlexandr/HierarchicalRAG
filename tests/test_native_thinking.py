@@ -16,7 +16,7 @@ def _config(model_id: str) -> dict:
     example_ids = [f"example-{index:02d}" for index in range(18)]
     decision_ids = ["D001", "D013", "D014"]
     if model_id.startswith("Qwen/Qwen3.5-"):
-        decision_ids.append("D015")
+        decision_ids.extend(("D015", "D016"))
     return {
         "experiment": {
             "stage": "train_only_native_thinking_smoke",
@@ -42,6 +42,10 @@ def _config(model_id: str) -> dict:
             "checkpoint_tensor_element_count": protocol[
                 "checkpoint_tensor_element_count"
             ],
+            "mtp_checkpoint_tensor_element_count": protocol.get(
+                "mtp_checkpoint_tensor_element_count",
+                0,
+            ),
             "max_position_embeddings": protocol["max_position_embeddings"],
             "frozen": True,
             "dtype": "bfloat16",
@@ -85,9 +89,9 @@ def test_native_protocol_rejects_disabled_qwen_thinking():
 
 def test_native_protocol_rejects_qwen_without_count_decision():
     config = _config("Qwen/Qwen3.5-2B")
-    config["experiment"]["decision_ids"].remove("D015")
+    config["experiment"]["decision_ids"].remove("D016")
 
-    with pytest.raises(ValueError, match="must cite D015"):
+    with pytest.raises(ValueError, match="must cite D015/D016"):
         validate_native_thinking_protocol(config)
 
 

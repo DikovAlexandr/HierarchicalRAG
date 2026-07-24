@@ -153,6 +153,16 @@ Required fields: ID, date, owner, status, decision, alternatives, evidence, expe
 - **Impact:** v2 corrects measurement semantics only. Parameter ratios to HRM use the model-parameter count; reports may also show checkpoint tensor elements with an explicit label. The failed v1 run is not a model feasibility result and cannot be used in quality comparisons.
 - **Revisit when:** the pinned runtime reports a model-parameter count different from the BF16 metadata count, or upstream metadata changes at the pinned revision.
 
+### D016 — Exclude auxiliary MTP checkpoint tensors from Qwen inference parameter counts
+
+- **Date / owner:** 2026-07-25 / alexander_dikov.
+- **Status:** accepted after the preserved Qwen3.5-0.8B v2 pre-generation failure and before any Qwen3.5 generation or Qwen3.5-2B job; supersedes the inference-parameter values in D015 without changing its checkpoint totals.
+- **Decision:** preserve v2 and use v3 configurations. For Qwen3.5-0.8B, record 852,985,920 inference-model parameters, 20,452,864 auxiliary MTP checkpoint tensor elements, and 873,438,784 total checkpoint tensor elements. For Qwen3.5-2B, record 2,213,241,664 inference-model parameters, 60,828,160 auxiliary MTP checkpoint tensor elements, and 2,274,069,824 total checkpoint tensor elements. Strictly compare `model.parameters()` with the inference-model count and report all three labels. Do not change any experimental input or generation setting.
+- **Alternatives:** disable the assertion; label every checkpoint tensor as an inference parameter; load the MTP training head for generation; discover the 2B count through another paid failed job.
+- **Evidence:** job `bt1q81lm1vog15n7uc4h` observed exactly 852,985,920 parameters after loading the pinned 0.8B checkpoint and stopped before generation. Reading only the pinned safetensors headers gives 20,452,864 elements under `mtp.*` for 0.8B and 60,828,160 for 2B. Subtracting those MTP tensors from the official checkpoint totals yields exactly 852,985,920 and 2,213,241,664. MTP is an auxiliary training/prediction head and is not part of the loaded conditional-generation inference model.
+- **Impact:** v3 fixes provenance and avoids a redundant paid 2B failure. Ratios to HRM use 0.7211610885 for 0.8B and 1.8711959131 for 2B. V1 and v2 remain technical failures with no generated outputs and no model-quality meaning.
+- **Revisit when:** v3 runtime counts differ, the selected inference class begins loading MTP as independent parameters, or a study explicitly evaluates MTP compute.
+
 ## New decision template
 
 ### DXXX — Short title
