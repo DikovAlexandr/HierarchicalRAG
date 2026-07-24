@@ -16,7 +16,7 @@ import traceback
 from dataclasses import asdict
 from pathlib import Path
 from statistics import fmean
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 import yaml
 
@@ -48,9 +48,23 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    config_path = args.config.resolve()
+    return execute_baseline_smoke(
+        config_path=args.config.resolve(),
+        validate_protocol=_validate_frozen_protocol,
+        run_model=_run_model,
+    )
+
+
+def execute_baseline_smoke(
+    *,
+    config_path: Path,
+    validate_protocol: Callable[[Mapping[str, Any]], None],
+    run_model: Callable[..., tuple[dict[str, Any], dict[str, Any]]],
+) -> int:
+    """Execute the shared immutable-artifact workflow for a reader smoke."""
+
     config = load_experiment_config(config_path)
-    _validate_frozen_protocol(config)
+    validate_protocol(config)
     root = Path.cwd().resolve()
     experiment = config["experiment"]
     dataset_config = config["dataset"]
@@ -80,7 +94,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     targets = examples[demonstration_count:]
     evaluated_count = int(dataset_config["selection"]["evaluated_count"])
     if len(demonstrations) != 2 or len(targets) != evaluated_count:
-        raise ValueError("D010 requires exactly 2 demonstrations and 16 targets")
+        raise ValueError(
+            "the baseline smoke requires exactly 2 demonstrations and the "
+            "configured target count"
+        )
 
     run_dir = prepare_run_directory(_resolve(root, runtime["output_dir"]))
     command = shlex.join([sys.executable, *sys.argv])
@@ -108,7 +125,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     ]
 
     try:
-        metrics, environment = _run_model(
+        metrics, environment = run_model(
             run_dir=run_dir,
             experiment_id=experiment["id"],
             demonstrations=demonstrations,

@@ -1,0 +1,46 @@
+name: hierarchical-rag-p1-lfm25-thinking-gold-train-smoke-v1
+desc: LFM2.5 native-thinking train-only compatibility gate under D013/D014.
+cmd: >
+  python -m pip install --disable-pip-version-check --no-cache-dir --no-deps
+  --root-user-action=ignore --progress-bar off -r environments/hrm-text-gpu.lock
+  && PYTHONPATH=src python -m hierarchical_rag.run_native_thinking_smoke
+  --config experiments/configs/p1-lfm2.5-thinking-gold-train-smoke-v1.yaml
+inputs:
+  - environments/hrm-text-gpu.lock
+  - experiments/configs/p1-lfm2.5-thinking-gold-train-smoke-v1.yaml
+  - data/processed/hotpotqa/train-distractor-s42-n18.json
+  - data/processed/hotpotqa/train-distractor-s42-n18.manifest.json
+  - src/hierarchical_rag/__init__.py
+  - src/hierarchical_rag/experiment.py
+  - src/hierarchical_rag/hotpotqa.py
+  - src/hierarchical_rag/metrics.py
+  - src/hierarchical_rag/native_thinking.py
+  - src/hierarchical_rag/qwen_baseline.py
+  - src/hierarchical_rag/run_native_thinking_smoke.py
+  - src/hierarchical_rag/run_qwen_baseline_smoke.py
+outputs:
+  - results/runs/p1-lfm2.5-thinking-gold-train-smoke-v1/manifest.json
+  - results/runs/p1-lfm2.5-thinking-gold-train-smoke-v1/resolved-config.yaml
+  - results/runs/p1-lfm2.5-thinking-gold-train-smoke-v1/command.txt
+  - results/runs/p1-lfm2.5-thinking-gold-train-smoke-v1/environment.txt
+  - results/runs/p1-lfm2.5-thinking-gold-train-smoke-v1/predictions.jsonl
+  - results/runs/p1-lfm2.5-thinking-gold-train-smoke-v1/retrieval.jsonl
+  - results/runs/p1-lfm2.5-thinking-gold-train-smoke-v1/metrics.json
+  - results/runs/p1-lfm2.5-thinking-gold-train-smoke-v1/statistics.json
+  - results/runs/p1-lfm2.5-thinking-gold-train-smoke-v1/run.log
+env:
+  vars:
+    - HIERARCHICAL_RAG_SOURCE_REVISION
+    - PYTHONHASHSEED: 0
+    - TOKENIZERS_PARALLELISM: "false"
+    - HF_HUB_DISABLE_TELEMETRY: 1
+  docker:
+    image: pytorch/pytorch:2.5.1-cuda12.1-cudnn9-runtime@sha256:831247999fbf7e08f61b3e39f6d77ee434f38f6f07f769d00db451e853878067
+cloud-instance-types:
+  - g2.1
+working-storage:
+  type: SSD
+  size: 100Gb
+graceful-shutdown:
+  signal: SIGTERM
+  timeout: 30s
