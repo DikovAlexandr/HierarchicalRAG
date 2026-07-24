@@ -47,6 +47,7 @@ def build_cot_chat_prompt(
     render_chat: Callable[[Sequence[Mapping[str, str]]], str],
     token_count: Callable[[str], int],
     max_input_tokens: int,
+    demonstration_rationale: str = "answer_only",
 ) -> ChatPromptBuild:
     """Render the fixed few-shot CoT chat and truncate target evidence only."""
 
@@ -54,6 +55,8 @@ def build_cot_chat_prompt(
         raise ValueError("max_input_tokens must be positive")
     if len(demonstrations) != 2:
         raise ValueError("D010 requires exactly two demonstrations")
+    if demonstration_rationale not in {"answer_only", "supporting_fact_sentences"}:
+        raise ValueError("unsupported demonstration rationale policy")
     for demonstration in demonstrations:
         if demonstration.answer is None:
             raise ValueError(
@@ -71,6 +74,7 @@ def build_cot_chat_prompt(
         target,
         target_paragraphs,
         render_chat=render_chat,
+        demonstration_rationale=demonstration_rationale,
     )
     full_tokens = token_count(full_prompt)
     total_sentences = sum(len(paragraph.sentences) for paragraph in target_paragraphs)
@@ -101,6 +105,7 @@ def build_cot_chat_prompt(
                 target,
                 (*included, candidate_paragraph),
                 render_chat=render_chat,
+                demonstration_rationale=demonstration_rationale,
             )
             if token_count(candidate_prompt) > max_input_tokens:
                 exhausted = True
@@ -126,6 +131,7 @@ def build_cot_chat_prompt(
         target,
         included,
         render_chat=render_chat,
+        demonstration_rationale=demonstration_rationale,
     )
     input_tokens = token_count(prompt)
     if input_tokens > max_input_tokens:
@@ -180,11 +186,18 @@ def _render(
     target_paragraphs: Sequence[Paragraph],
     *,
     render_chat: Callable[[Sequence[Mapping[str, str]]], str],
+    demonstration_rationale: str,
 ) -> str:
     messages: list[dict[str, str]] = [
         {"role": "system", "content": SYSTEM_INSTRUCTION}
     ]
     for demonstration in demonstrations:
+        assistant_content = f"Answer: {demonstration.answer}"
+        if demonstration_rationale == "supporting_fact_sentences":
+            assistant_content = (
+                f"Reasoning: {_supporting_fact_sentences(demonstration)}\n"
+                f"Answer: {demonstration.answer}"
+            )
         messages.extend(
             [
                 {
@@ -196,7 +209,7 @@ def _render(
                 },
                 {
                     "role": "assistant",
-                    "content": f"Answer: {demonstration.answer}",
+                    "content": assistant_content,
                 },
             ]
         )
@@ -207,6 +220,21 @@ def _render(
         }
     )
     return render_chat(messages)
+
+
+def _supporting_fact_sentences(example: HotpotExample) -> str:
+    supporting = {
+        (fact.title, fact.sentence_id) for fact in example.supporting_facts
+    }
+    sentences = [
+        sentence.strip()
+        for paragraph in example.context
+        for sentence_id, sentence in enumerate(paragraph.sentences)
+        if (paragraph.title, sentence_id) in supporting
+    ]
+    if not sentences:
+        raise ValueError(f"{example.identifier}: no supporting sentences available")
+    return " ".join(sentences)
 
 
 def _unwrap_box(value: str) -> str:

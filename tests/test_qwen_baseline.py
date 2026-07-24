@@ -42,6 +42,28 @@ def test_chat_prompt_uses_same_evidence_and_hides_target_answer(hotpot_records):
     assert built.truncated is False
 
 
+def test_v2_chat_uses_only_ordered_supporting_sentences_for_demo_cot(
+    hotpot_records,
+):
+    first, second, target = _examples(hotpot_records)
+
+    built = build_cot_chat_prompt(
+        (first, second),
+        target,
+        gold_paragraphs(target),
+        render_chat=_render,
+        token_count=len,
+        max_input_tokens=10_000,
+        demonstration_rationale="supporting_fact_sentences",
+    )
+
+    assert (
+        "Reasoning: France is a country in Europe. "
+        "Paris is the capital of France.\nAnswer: Paris"
+    ) in built.prompt
+    assert "Berlin is the capital of Germany." not in built.prompt
+
+
 def test_chat_prompt_truncates_only_target_on_sentence_boundaries(hotpot_records):
     first, second, target = _examples(hotpot_records)
     target = replace(

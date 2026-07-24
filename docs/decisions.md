@@ -103,6 +103,16 @@ Required fields: ID, date, owner, status, decision, alternatives, evidence, expe
 - **Impact:** E2 has one preregistered primary CoT baseline selected independently of HotpotQA validation performance. Parameter count, generated-token count, latency, throughput, and memory must accompany quality metrics; the 30% parameter difference must be disclosed rather than described as exact matching. No baseline prompt change may be inferred from validation. A secondary compute-matched or more contemporary baseline remains optional and must be selected before observing its evaluation outputs.
 - **Revisit when:** the pinned checkpoint cannot load in the fixed environment, cannot emit a parseable final answer on the train-only smoke, or the 64-token shared budget prevents completion on a material fraction of train targets. Any v2 prompt or budget must be motivated only from preserved train-smoke failures and must be recorded before another run.
 
+### D011 — Demonstrate CoT with benchmark supporting sentences in baseline prompt v2
+
+- **Date / owner:** 2026-07-24 / alexander_dikov.
+- **Status:** accepted after preserving D010 smoke v1 and before creating or running v2; no validation output has been observed.
+- **Decision:** keep the D010 model, 16 targets, target evidence, chat template, parser, 4,032+64 token budgets, greedy decoding, seed, and hardware unchanged. Change only the two demonstration assistant messages: before their unchanged `Answer:` line, add a deterministic `Reasoning:` line formed by concatenating the official supporting-fact sentences in original context and sentence order. Do not author, paraphrase, select, or edit rationales manually. Run this v2 train-only smoke once and require explicit reasoning on every target, a parseable final answer on every target, no target-evidence truncation, and no generation-budget exhaustion before treating the interface as the CoT baseline candidate for E2.
+- **Alternatives:** accept answer-only v1 as CoT; remove demonstrations; manually write demonstration rationales; increase the output budget; use sampling; change the model; tune on validation.
+- **Evidence:** preserved DataSphere Job `bt1gsm699kktck6u6b2j` at commit `7d5656f5d0a4a7d683a7c3f1903dd5b28669ae05` loaded the exact Qwen revision and completed all 16 D009 targets with 16 parseable final answers, zero truncations, and zero budget exhaustion, but emitted explicit reasoning on 0/16 targets. The answer-only assistant demonstrations contradicted the system request for explicit reasoning and were copied exactly by the model. This is a train-only interface failure, not a validation or quality result.
+- **Impact:** v1 remains immutable and ineligible as the H1 CoT row. V2 changes one prompt factor and uses only existing benchmark annotations for its demonstration format. Target supporting-fact labels are never exposed as labels; both readers still receive the same target question and gold paragraphs. V2 quality metrics remain exploratory and cannot be compared as H1 evidence.
+- **Revisit when:** any v2 target lacks explicit reasoning or a parseable final line, exhausts 64 tokens, or requires target-evidence truncation. A further change requires a new decision and must remain train-only.
+
 ## New decision template
 
 ### DXXX — Short title

@@ -266,6 +266,10 @@ def _run_model(
                     tokenizer(text, add_special_tokens=False)["input_ids"]
                 ),
                 max_input_tokens=int(prompt_config["max_input_tokens"]),
+                demonstration_rationale=prompt_config.get(
+                    "demonstration_rationale",
+                    "answer_only",
+                ),
             )
             inputs = tokenizer(
                 built.prompt,
@@ -429,8 +433,16 @@ def _validate_frozen_protocol(config: Mapping[str, Any]) -> None:
         raise ValueError("D010 requires the preregistered primary baseline")
     if not model["frozen"] or model["dtype"] != "bfloat16":
         raise ValueError("D010 requires a frozen BF16 model")
-    if prompt["style"] != "brief_explicit_cot_with_final_answer":
+    valid_styles = {
+        "brief_explicit_cot_with_final_answer": "answer_only",
+        "few_shot_supporting_fact_cot_final_answer": "supporting_fact_sentences",
+    }
+    if prompt["style"] not in valid_styles:
         raise ValueError("D010 requires the preregistered CoT prompt style")
+    if prompt.get("demonstration_rationale", "answer_only") != valid_styles[
+        prompt["style"]
+    ]:
+        raise ValueError("prompt style and demonstration rationale differ")
     if prompt["do_sample"] is not False:
         raise ValueError("D010 requires greedy decoding")
     if int(prompt["max_input_tokens"]) != 4032 or int(
