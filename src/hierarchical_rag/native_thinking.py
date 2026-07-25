@@ -111,9 +111,17 @@ def validate_native_thinking_protocol(config: Mapping[str, Any]) -> None:
     reader = config["reader"]
     runtime = config["runtime"]
 
-    if experiment["stage"] != "train_only_native_thinking_smoke":
-        raise ValueError("native-thinking runner is restricted to its train-only gate")
-    if not {"D013", "D014"} <= set(experiment["decision_ids"]):
+    decision_ids = set(experiment["decision_ids"])
+    stage = experiment["stage"]
+    if stage not in {
+        "train_only_native_thinking_smoke",
+        "train_only_native_thinking_final_gate",
+    }:
+        raise ValueError("native-thinking runner is restricted to its train-only gates")
+    is_final_gate = stage == "train_only_native_thinking_final_gate"
+    if is_final_gate != ("D017" in decision_ids):
+        raise ValueError("only the final 2048+2048 gate may cite D017")
+    if not {"D013", "D014"} <= decision_ids:
         raise ValueError("native-thinking configs must cite D013 and D014")
     if experiment["seeds"] != [0]:
         raise ValueError("the compatibility gate must run exactly once with seed 0")
@@ -132,9 +140,7 @@ def validate_native_thinking_protocol(config: Mapping[str, Any]) -> None:
     model_id = model["id"]
     if model_id not in MODEL_PROTOCOLS:
         raise ValueError(f"model is not preregistered by D013: {model_id}")
-    if model_id.startswith("Qwen/Qwen3.5-") and not {"D015", "D016"} <= set(
-        experiment["decision_ids"]
-    ):
+    if model_id.startswith("Qwen/Qwen3.5-") and not {"D015", "D016"} <= decision_ids:
         raise ValueError("Qwen3.5 configs with corrected counts must cite D015/D016")
     expected = MODEL_PROTOCOLS[model_id]
     for field in (
@@ -174,11 +180,13 @@ def validate_native_thinking_protocol(config: Mapping[str, Any]) -> None:
         raise ValueError("target truncation differs from the shared contract")
     if prompt["chat_template_kwargs"] != expected["chat_template_kwargs"]:
         raise ValueError("chat-template thinking mode differs from D013")
+    expected_allocation = (2048, 2048) if is_final_gate else (3584, 512)
     if (int(prompt["max_input_tokens"]), int(prompt["max_new_tokens"])) != (
-        3584,
-        512,
+        expected_allocation
     ):
-        raise ValueError("D014 requires the shared 3584+512 token allocation")
+        label = "D017" if is_final_gate else "D014"
+        allocation = "+".join(str(value) for value in expected_allocation)
+        raise ValueError(f"{label} requires the shared {allocation} token allocation")
     if int(prompt["total_reader_tokens"]) != 4096:
         raise ValueError("D014 requires a 4096-token total reader ceiling")
     if int(prompt["total_reader_tokens"]) > int(model["max_position_embeddings"]):

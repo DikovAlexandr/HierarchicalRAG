@@ -79,6 +79,26 @@ def test_native_protocol_accepts_every_preregistered_model(model_id):
     validate_native_thinking_protocol(_config(model_id))
 
 
+@pytest.mark.parametrize("model_id", sorted(MODEL_PROTOCOLS))
+def test_native_protocol_accepts_d017_final_gate(model_id):
+    config = _config(model_id)
+    config["experiment"]["stage"] = "train_only_native_thinking_final_gate"
+    config["experiment"]["decision_ids"].append("D017")
+    config["prompt"]["max_input_tokens"] = 2048
+    config["prompt"]["max_new_tokens"] = 2048
+
+    validate_native_thinking_protocol(config)
+
+
+def test_native_protocol_rejects_d017_with_old_allocation():
+    config = _config("LiquidAI/LFM2.5-1.2B-Thinking")
+    config["experiment"]["stage"] = "train_only_native_thinking_final_gate"
+    config["experiment"]["decision_ids"].append("D017")
+
+    with pytest.raises(ValueError, match=r"D017.*2048\+2048"):
+        validate_native_thinking_protocol(config)
+
+
 def test_native_protocol_rejects_disabled_qwen_thinking():
     config = _config("Qwen/Qwen3.5-2B")
     config["prompt"]["chat_template_kwargs"]["enable_thinking"] = False

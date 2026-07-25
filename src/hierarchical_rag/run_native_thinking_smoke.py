@@ -287,7 +287,11 @@ def _run_model(
             "peak_allocated_bytes": peak_allocated,
             "peak_reserved_bytes": peak_reserved,
         },
-        "claim_eligibility": "none; D013/D014 train-only compatibility gate",
+        "claim_eligibility": (
+            "none; D013/D014/D017 final train-only compatibility gate"
+            if "D017" in experiment_config["decision_ids"]
+            else "none; D013/D014 train-only compatibility gate"
+        ),
     }
     environment = {
         "python": sys.version,
