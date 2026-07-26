@@ -8,7 +8,10 @@ from hierarchical_rag.dense_fullwiki import DenseBuildStore
 from hierarchical_rag.dense_retrieval import validate_dense_build_protocol
 from hierarchical_rag.experiment import load_experiment_config
 from hierarchical_rag.fullwiki import WikiDocument
-from hierarchical_rag.run_dense_fullwiki_build import _select_first_overflow_chunks
+from hierarchical_rag.run_dense_fullwiki_build import (
+    _select_first_overflow_chunks,
+    _source_revision,
+)
 
 
 def _document(index: int) -> WikiDocument:
@@ -118,3 +121,12 @@ def test_overflow_selection_keeps_first_chunk_and_counts_truncation():
     assert selected["input_ids"] == [[10, 11], [20]]
     assert selected["attention_mask"] == [[1, 1], [1]]
     assert truncated == 1
+
+
+def test_bundle_revision_precedes_stale_notebook_git_metadata(tmp_path, monkeypatch):
+    revision = "a" * 40
+    (tmp_path / ".git").mkdir()
+    (tmp_path / "SOURCE_REVISION.txt").write_text(revision + "\n")
+    monkeypatch.setenv("HIERARCHICAL_RAG_SOURCE_REVISION", revision)
+
+    assert _source_revision(tmp_path, require_clean=True) == revision

@@ -572,27 +572,23 @@ def _source_revision(root: Path, *, require_clean: bool) -> str:
     environment = os.environ.get("HIERARCHICAL_RAG_SOURCE_REVISION")
     if marker and environment and marker != environment:
         raise RuntimeError("bundle marker and source-revision environment differ")
+    bundled = environment or marker
+    if bundled is not None:
+        if len(bundled) != 40 or any(
+            character not in "0123456789abcdef" for character in bundled
+        ):
+            raise RuntimeError("bundle does not declare a valid source revision")
+        # A Notebook project may retain stale .git metadata across successive
+        # verified git-archive extractions. The paired marker/environment values
+        # identify the clean bundle and deliberately take precedence there.
+        return bundled
     if (root / ".git").exists():
         revision = git_revision(root)
-        if marker and marker != revision:
-            raise RuntimeError("bundle marker differs from checked-out Git revision")
-        if environment and environment != revision:
-            raise RuntimeError("source-revision environment differs from Git revision")
         if require_clean:
-            dirty = [
-                line
-                for line in git_status(root).splitlines()
-                if line.strip() != "?? SOURCE_REVISION.txt"
-            ]
-            if dirty:
+            if git_status(root):
                 raise RuntimeError("dense fullwiki build requires a clean Git worktree")
         return revision
-    revision = environment or marker
-    if revision is None or len(revision) != 40 or any(
-        character not in "0123456789abcdef" for character in revision
-    ):
-        raise RuntimeError("bundle does not declare a valid source revision")
-    return revision
+    raise RuntimeError("source tree has neither a bundle revision nor Git metadata")
 
 
 def _load_json(path: Path) -> dict[str, Any]:
