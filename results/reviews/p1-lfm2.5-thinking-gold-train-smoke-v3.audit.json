@@ -1,0 +1,66 @@
+{
+  "audit": {
+    "integrity_status": "passed",
+    "original_error": "NameError: name 'experiment_config' is not defined",
+    "original_status": "failed_during_metrics_finalization",
+    "recovery_scope": "deterministic_post_generation_metrics_only",
+    "unrecoverable_original_fields": [
+      "evaluation_seconds_including_non_generation_overhead",
+      "original_throughput_examples_per_second",
+      "peak_allocated_bytes",
+      "peak_reserved_bytes",
+      "full_pip_freeze_from_generation_process",
+      "full_nvidia_smi_from_generation_process"
+    ]
+  },
+  "claim_scope": "Exploratory train-only D017 interface evidence only; no H1, validation, system-comparison, or article-result claim.",
+  "environment_from_terminal": {
+    "gpu": "NVIDIA A100-SXM4-80GB",
+    "model": "LiquidAI/LFM2.5-1.2B-Thinking",
+    "model_load_seconds": 52.237,
+    "parameters": 1170340608,
+    "torch": "2.5.1+cu121",
+    "transformers": "5.9.0"
+  },
+  "experiment_id": "p1-lfm2.5-thinking-gold-train-smoke-v3",
+  "provenance": {
+    "archive": "results/runs/_archives/p1-lfm2.5-thinking-gold-train-smoke-v3-artifacts-20260726T114556Z.tar.gz",
+    "archive_sha256": "92eff7dfd032a1f9cd10624df9bd446d9ab067ef48d32db5a3b1c0a1d4a9c211",
+    "audit_source_revision": "77ba4f1931ff214039b5a887dc68f038cf52f28e",
+    "manifest_sha256": "0502ad175cb786e2430a23bc80a5b9b8d17e072efd743a5e94980a56a75647c8",
+    "original_source_revision": "6842f898dcfdb654e3059e011705170f8e645e8d",
+    "predictions_sha256": "f357f5f6cfcf9e9b055afb1e96c6c558f2dfd85d47b0e1a856e6c99291af6556",
+    "raw_run_dir": "results/runs/p1-lfm2.5-thinking-gold-train-smoke-v3",
+    "resolved_config_sha256": "dbf3c075e5457334fa6fdaee911c1ae7ae2dab8dc32092ec75a706e4255c2320",
+    "retrieval_sha256": "a8c293eb7cc685e177f3c623b8d1015636de135943075082d6e12f76566fa75f",
+    "source_config": "experiments/configs/p1-lfm2.5-thinking-gold-train-smoke-v3.yaml",
+    "source_config_sha256": "c294f074af181a5cc2237aa9ee25f324e6a479b74b5462139dfb3f09d264a93f",
+    "terminal_log_sha256": "f89f79a17a0c41f2bf261396d9d803d35bcbc153d361e6f59404579921cdfacb"
+  },
+  "recovered_metrics": {
+    "answer_exact_match": 0.5,
+    "answer_f1": 0.5833333333333334,
+    "answer_precision": 0.65625,
+    "answer_recall": 0.5645833333333333,
+    "budget_exhausted_count": 1,
+    "budget_exhausted_ids": [
+      "5ab280b95542997061209642"
+    ],
+    "evaluated_count": 16,
+    "explicit_reasoning_count": 16,
+    "generated_tokens_mean": 1038.1875,
+    "generated_tokens_total": 16611,
+    "generation_latency_mean_seconds": 13.479444559374997,
+    "generation_latency_sum_seconds": 215.67111294999995,
+    "generation_only_throughput_examples_per_second": 0.07418703312255524,
+    "input_tokens_max": 1279,
+    "input_tokens_min": 1045,
+    "interface_gate_passed": false,
+    "reasoning_detection_methods": {
+      "closed_think_block": 16
+    },
+    "truncated_example_count": 0,
+    "valid_extraction_count": 16
+  },
+  "schema_version": 1
+}
