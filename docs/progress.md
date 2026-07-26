@@ -11,7 +11,7 @@ The end-to-end project is approximately **45% complete** by research-stage exit 
 | Stage | Status | Completed | Remaining exit work |
 |---|---|---|---|
 | P1 — Feasibility | Complete | Pinned HRM-Text reference, deterministic train slice, metric harness, GPU environment, reader interfaces, and preserved failures | No remaining P1 work; baseline selection gates P3/E2 |
-| P2 — Retrieval | Sparse baseline complete | Full 7,405-example BM25 run, independent audit, bootstrap CI, and error analysis | Frozen dense-retrieval ablation required by D027; then bind both immutable caches to readers |
+| P2 — Retrieval | Dense calibration ready | Full 7,405-example BM25 run, independent audit, bootstrap CI, error analysis, and frozen D028 dense protocol plus label-free calibration bundle | Run the calibration, approve the projected cost, build/audit the dense index and rankings, then bind immutable caches to readers |
 | P3 — Frozen HRM | In progress | HRM adapter and gold-evidence train smoke | Identical BM25-evidence smoke and confirmatory validation comparison |
 | P4 — Robustness | Prepared only | Deterministic distractor machinery | Shared-reader runs at 0, 1, 2, and 4 distractors with paired analysis |
 | P5 — Adaptation | Not started | Hypothesis and safeguards defined | Training data, low-level adaptation, seeds, ablations, and reasoning-retention evaluation |
@@ -79,11 +79,11 @@ Raw archives are stored locally under `results/runs/_archives/`; extracted immut
 
 ## Next gates
 
-1. Select and freeze one pretrained dense retriever under D027, then build its corpus index and immutable HotpotQA rankings.
-2. Benchmark a batched reader implementation on fixed train-only prompts across available GPUs and select hardware by cost per completed example, not hourly price or VRAM capacity.
+1. Run `p2-qwen3-embedding-fullwiki-calibration-v1`, compare its 1.25x-reserved unit projection with the live balance, and only then authorize the frozen D028 full-corpus index and immutable HotpotQA rankings.
+2. Benchmark a batched reader implementation on fixed synthetic/train-only prompts and select execution by cost per completed example, not hourly price or idle VRAM.
 3. Ask the mentor to approve the final E2 baseline family. The recommended proposal is Qwen2.5-1.5B-Instruct under the shared primary budget, with Qwen3.5-2B at the expanded ceiling only as a labeled secondary control.
 4. Record a new decision that freezes the E2 models, shared evidence and token contract, sample size, seeds, paired tests, confidence intervals, effect size, and multiple-comparison correction.
 5. Run a train-only HRM/primary-baseline smoke on byte-identical cached evidence.
 6. Only after that gate passes, run the frozen validation comparison for H1, followed by H2 robustness and H3 adaptation.
 
-No additional D017 or D023 GPU run is authorized. The next GPU work is a train-only throughput benchmark, followed by the E2 shared-evidence smoke only after its protocol is frozen.
+No additional D017 or D023 GPU run is authorized. The next GPU work is the D028 label-free dense calibration and a separate non-claim-bearing batched reader throughput benchmark. Neither opens validation labels; E2 shared-evidence inference remains blocked until its protocol and mentor-facing baseline choice are frozen.

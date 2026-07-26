@@ -61,3 +61,17 @@ The sequential v1 smoke is the immutable ranking reference. The v2 smoke adds
 only eight-way CPU execution and must exactly match every v1 rank, document ID,
 and score before the v2 full run is allowed. The unexecuted full v1 config is
 retained as the preregistered sequential alternative.
+
+## D028 dense-retrieval resource calibration
+
+D028 freezes the single modern dense ablation before any dense validation metric
+is visible. Its first run is deliberately corpus-only: 256 warmup documents and
+8,192 measured documents sampled systematically across the complete Wikipedia
+index. It records throughput, truncation, peak memory, the approximately 5 GiB
+FP16 vector-store size, and a conservative full-corpus DataSphere unit
+projection. It performs no search and observes no benchmark questions or labels.
+
+The calibration must stop after writing its artifact. A full 5,233,235-document
+embedding pass requires a separate cost approval based on the live unit balance;
+the calibration result cannot be used to change the frozen model, serialization,
+pooling, dimension, normalization, or input length.

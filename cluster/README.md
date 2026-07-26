@@ -113,6 +113,52 @@ bash cluster/datasphere/run-d023-notebook.sh \
 
 The runner refuses to overwrite a non-empty run directory. Do not delete or repeat a completed or model-output-producing D023 run merely because its result is unfavorable.
 
+### D028 dense encoder calibration
+
+D028 is independent of the closed D017/D023 reader gates. It measures only
+corpus-encoding cost and never opens HotpotQA questions or labels. Build the
+bundle from a clean committed worktree; the ignored 8,448-document sample and its
+manifest are checksum-verified and embedded automatically:
+
+```powershell
+python cluster/datasphere/prepare_d028_notebook_bundle.py
+```
+
+Upload `d028-notebook-bundle-<revision>.tar.gz` to `/home/jupyter/project`, select
+the A100 VM, and run this Python notebook cell after substituting the exact name:
+
+```python
+from pathlib import Path, PurePosixPath
+import subprocess
+import tarfile
+
+project_dir = Path("/home/jupyter/project")
+bundle = project_dir / "d028-notebook-bundle-<revision>.tar.gz"
+
+with tarfile.open(bundle, "r:gz") as archive:
+    members = archive.getmembers()
+    if not members or any(
+        (path := PurePosixPath(member.name)).is_absolute()
+        or ".." in path.parts
+        or not path.parts
+        or path.parts[0] != "HierarchicalRAG"
+        for member in members
+    ):
+        raise RuntimeError("Unsafe or unexpected bundle layout")
+    archive.extractall(project_dir)
+
+completed = subprocess.run(
+    ["bash", "cluster/datasphere/run-d028-notebook.sh"],
+    cwd=project_dir / "HierarchicalRAG",
+    check=False,
+)
+print(f"runner_exit_status={completed.returncode}")
+```
+
+Download the printed `artifact_archive` even on failure. Release the Notebook VM
+immediately afterward: the calibration is not authorization for the full corpus
+build, and an idle Notebook continues consuming units.
+
 ## Fullwiki storage
 
 The pinned HotpotQA introduction archive is 1,553,565,403 bytes with official MD5 `01edf64cd120ecc03a2745352779514c`. Keep it in the writable data mount and build the SQLite index in the ignored `artifacts/indexes/` or a cluster scratch path that is copied to durable storage with its manifest and checksum.

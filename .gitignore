@@ -33,6 +33,7 @@ Thumbs.db
 /artifacts/indexes/
 /results/runs/
 /d023-notebook-bundle-*.tar.gz
+/d028-notebook-bundle-*.tar.gz
 
 # External experiment trackers
 /wandb/
