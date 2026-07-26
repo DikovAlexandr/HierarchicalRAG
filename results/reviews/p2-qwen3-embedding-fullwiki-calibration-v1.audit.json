@@ -1,0 +1,61 @@
+{
+  "audit": {
+    "audit_source_revision": "5bf1ef2afde233f4c8d61e7a38920cf6569a8278",
+    "integrity_status": "passed_for_resource_projection",
+    "limitations": [
+      "Per-document pre-truncation token lengths were not retained, so the reported mean input length and zero-truncation count cannot be recomputed from the artifact alone. They remain reproducible from the pinned sample and tokenizer, but are not needed for the D029 cost decision."
+    ],
+    "original_status": "complete_non_claim_bearing_resource_calibration"
+  },
+  "claim_scope": "Label-free resource calibration only. It supports a resource-bound decision, not a dense-retrieval quality or reader-quality claim.",
+  "experiment_id": "p2-qwen3-embedding-fullwiki-calibration-v1",
+  "provenance": {
+    "archive_sha256": "023a087d46a50ba4c88a15fd39768a05de64db52a35c52ac0ef0ab201b01deb9",
+    "checked_input_sha256": {
+      "dependency_lock_file": "a4439c71efa6c4ce0354edbc732a0227d68106a62db5140917ea74d05a0dc647",
+      "manifest_file": "fa0f52fcd872bdd900abe8c32f90f410a2ab05669834ab131336280bf5c53294",
+      "source_file": "70ad85afdb16e6ec8e2f9aaa2649f9156c61b6e6f6901c89d9ec46c9b38200a1"
+    },
+    "hardware": "NVIDIA A100-SXM4-80GB",
+    "manifest_sha256": "e42e48c2174c323881e1af027cbab3819051bba7166f22b5ce849e62c7e2dad0",
+    "model_id": "Qwen/Qwen3-Embedding-0.6B",
+    "model_revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+    "original_source_revision": "c073dfc6fbf5a2bbca22fecf063c33231611c78a",
+    "resolved_config_sha256": "1fa67ffc979c23e222bfcd5a21d3528f8c1ae9486fb466ea4554edc9c6003403",
+    "source_config_sha256": "52fdcdfe87ceb63ddf9004efff0cc3866df60d9f068fd1e7348c6e851238be18"
+  },
+  "reported_non_recomputed_metrics": {
+    "input_tokens_mean_before_truncation": 69.2908935546875,
+    "peak_allocated_bytes": 12725139968,
+    "peak_reserved_bytes": 15707668480,
+    "truncated_document_count": 0,
+    "truncated_document_rate": 0.0
+  },
+  "resource_policy": {
+    "d029_encoding_unit_limit": 180000,
+    "decision": "do_not_start_full_dense_corpus_build",
+    "encoding_limit_multiple": 14.055083333333334,
+    "exceeds_encoding_limit_by_units": 2349915,
+    "exceeds_reported_balance_by_units": 1074879,
+    "projected_a100_hours_with_reserve": 6.058224310940661,
+    "projected_units": 2529915,
+    "reported_balance_multiple": 1.738730175748229,
+    "reported_remaining_balance_before_calibration": 1455036
+  },
+  "schema_version": 1,
+  "verified_metrics": {
+    "batch_count": 64,
+    "documents_per_second": 299.9386276981498,
+    "max_l2_norm_error_after_fp16_cast": 0.00024127960205078125,
+    "measured_documents": 8192,
+    "projected_embedding_bytes_fp16": 5358832640,
+    "projection": {
+      "effective_documents_per_second": 299.9386276981498,
+      "projected_seconds": 21809.60751938638,
+      "projected_units": 2529915,
+      "reserve_multiplier": 1.25
+    },
+    "tokens_per_second": 20783.01552477154,
+    "tokens_processed": 567631
+  }
+}

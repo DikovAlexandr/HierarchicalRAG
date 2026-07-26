@@ -34,6 +34,7 @@ Thumbs.db
 /results/runs/
 /d023-notebook-bundle-*.tar.gz
 /d028-notebook-bundle-*.tar.gz
+/p2-*-artifacts-*.tar.gz
 
 # External experiment trackers
 /wandb/
