@@ -6,6 +6,8 @@ Last updated: 2026-07-26.
 
 The repository preparation, reproducibility infrastructure, metric validation, HRM-Text interface work, full BM25 retrieval run, and train-only reader feasibility studies are complete or substantially complete. The project has not yet produced a confirmatory HRM-versus-baseline comparison on shared validation evidence.
 
+The live DataSphere balance is 1,455,036/5,000,000 units. D029 protects the remaining compute with hard envelopes and limits a full dense build to a 180,000-unit encoding projection and 220,000 units end to end. The balance equals only about 3 hours 29 minutes of A100 lifetime, so full-split Qwen3.5 expanded-budget inference is not currently planned.
+
 The end-to-end project is approximately **45% complete** by research-stage exit criteria. This estimate is not based on code volume: feasibility, infrastructure, sparse retrieval, and reader-budget diagnosis are complete, while the claim-bearing H1–H3 experiments remain mostly ahead.
 
 | Stage | Status | Completed | Remaining exit work |
@@ -87,3 +89,14 @@ Raw archives are stored locally under `results/runs/_archives/`; extracted immut
 6. Only after that gate passes, run the frozen validation comparison for H1, followed by H2 robustness and H3 adaptation.
 
 No additional D017 or D023 GPU run is authorized. The next GPU work is the D028 label-free dense calibration and a separate non-claim-bearing batched reader throughput benchmark. Neither opens validation labels; E2 shared-evidence inference remains blocked until its protocol and mentor-facing baseline choice are frozen.
+
+### Remaining compute envelopes (D029)
+
+| Work | Units | A100-equivalent time | Rule |
+|---|---:|---:|---|
+| D028 + reader calibration/infrastructure | 75,000 | 10.8 min | Stop all gates when the shared envelope is exhausted |
+| Full dense build, queries, exact search | 220,000 | 31.6 min | Start only when D028 projects encoding at no more than 180,000 units |
+| H1 primary comparison | 550,000 | 79.0 min | Highest claim-bearing priority |
+| H2 robustness | 250,000 | 35.9 min | Freeze sample/noise matrix before execution |
+| H3 adaptation and retention | 210,000 | 30.2 min | Minimum defensible seeds/ablations first |
+| Failure and reproduction reserve | 150,000 | 21.6 min | Cannot be spent without a new decision |
