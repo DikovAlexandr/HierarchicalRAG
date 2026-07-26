@@ -10,6 +10,7 @@ from hierarchical_rag.native_thinking import (
     validate_native_thinking_protocol,
 )
 from hierarchical_rag.run_native_thinking_smoke import (
+    _claim_eligibility,
     _example_progress,
 )
 
@@ -180,3 +181,16 @@ def test_example_progress_reports_bounded_bar_and_identity():
     assert "[######------------------]" in message
     assert "examples=4/16" in message
     assert "example_id=example-04" in message
+
+
+def test_claim_eligibility_uses_validated_token_allocation():
+    assert _claim_eligibility(
+        {"max_input_tokens": 2048, "max_new_tokens": 2048}
+    ) == "none; D013/D014/D017 final train-only compatibility gate"
+    assert _claim_eligibility(
+        {"max_input_tokens": 3584, "max_new_tokens": 512}
+    ) == "none; D013/D014 train-only compatibility gate"
+    with pytest.raises(ValueError, match="unsupported native-thinking token allocation"):
+        _claim_eligibility(
+            {"max_input_tokens": 2048, "max_new_tokens": 512}
+        )

@@ -334,11 +334,7 @@ def _run_model(
             "peak_allocated_bytes": peak_allocated,
             "peak_reserved_bytes": peak_reserved,
         },
-        "claim_eligibility": (
-            "none; D013/D014/D017 final train-only compatibility gate"
-            if "D017" in experiment_config["decision_ids"]
-            else "none; D013/D014 train-only compatibility gate"
-        ),
+        "claim_eligibility": _claim_eligibility(prompt_config),
     }
     environment = {
         "python": sys.version,
@@ -387,6 +383,18 @@ def _example_progress(
         f"progress=[{bar}] examples={current}/{total} "
         f"example_id={example_id} status={status} {detail}"
     )
+
+
+def _claim_eligibility(prompt_config: Mapping[str, Any]) -> str:
+    allocation = (
+        int(prompt_config["max_input_tokens"]),
+        int(prompt_config["max_new_tokens"]),
+    )
+    if allocation == (2048, 2048):
+        return "none; D013/D014/D017 final train-only compatibility gate"
+    if allocation == (3584, 512):
+        return "none; D013/D014 train-only compatibility gate"
+    raise ValueError(f"unsupported native-thinking token allocation: {allocation}")
 
 
 class _GenerationHeartbeat:
