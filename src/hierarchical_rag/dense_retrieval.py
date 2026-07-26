@@ -143,3 +143,63 @@ def validate_dense_calibration_protocol(config: Mapping[str, Any]) -> None:
         raise ValueError("resource projection reserve cannot be below one")
     if float(runtime["corpus_stream_documents_per_second"]) <= 0:
         raise ValueError("corpus stream throughput must be positive")
+
+
+def validate_dense_build_protocol(config: Mapping[str, Any]) -> None:
+    """Reject changes to the quality-relevant D028 full-corpus protocol."""
+
+    experiment = config["experiment"]
+    dataset = config["dataset"]
+    retriever = config["retriever"]
+    index = config["index"]
+    runtime = config["runtime"]
+    if experiment["stage"] != "corpus_index_build":
+        raise ValueError("dense build must be a corpus-only infrastructure stage")
+    if not {"D027", "D028", "D031"}.issubset(experiment["decision_ids"]):
+        raise ValueError("dense build must cite D027, D028, and D031")
+    if dataset["split"] != "corpus_only" or dataset["labels_observed"]:
+        raise ValueError("dense corpus build cannot observe benchmark labels")
+
+    expected_retriever = {
+        "id": QWEN3_EMBEDDING_ID,
+        "revision": QWEN3_EMBEDDING_REVISION,
+        "parameter_count_expected": QWEN3_EMBEDDING_PARAMETERS,
+        "frozen": True,
+        "dtype": "bfloat16",
+        "serialization": "text_only",
+        "pooling": "last_non_padding_token",
+        "normalization": "truncate_mrl_then_l2",
+        "output_dimension": 512,
+        "max_input_tokens": 512,
+        "attention_implementation": "sdpa",
+    }
+    for key, value in expected_retriever.items():
+        if retriever.get(key) != value:
+            raise ValueError(f"retriever.{key} differs from frozen D028 protocol")
+    if retriever.get("query_instruction") != QUERY_INSTRUCTION:
+        raise ValueError("query instruction differs from frozen D028 text")
+
+    expected_index = {
+        "schema_version": 1,
+        "vector_dtype": "float16_little_endian",
+        "dimension": 512,
+        "document_order": "official_corpus_order_after_audited_empty_skip",
+        "similarity": "exact_inner_product",
+        "tie_break": "document_id_ascending",
+    }
+    for key, value in expected_index.items():
+        if index.get(key) != value:
+            raise ValueError(f"index.{key} differs from frozen D028 protocol")
+    if int(dataset["expected_indexed_document_count"]) != 5_233_235:
+        raise ValueError("dense build requires the complete audited corpus")
+    if int(dataset["expected_source_record_count"]) != 5_233_329:
+        raise ValueError("dense build source count differs from corpus audit")
+    if int(dataset["expected_skipped_empty_text"]) != 94:
+        raise ValueError("dense build empty-text exclusions differ from corpus audit")
+    if int(runtime["batch_size"]) != 128:
+        raise ValueError("dense build batch size differs from successful calibration")
+    shard_documents = int(runtime["shard_documents"])
+    if shard_documents < 128 or shard_documents % 128:
+        raise ValueError("dense shard size must be a positive batch-size multiple")
+    if int(runtime["max_attempt_seconds"]) < 1:
+        raise ValueError("dense build attempt limit must be positive")

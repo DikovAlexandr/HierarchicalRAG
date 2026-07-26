@@ -32,8 +32,12 @@ Thumbs.db
 /artifacts/checkpoints/
 /artifacts/indexes/
 /results/runs/
+/SOURCE_REVISION.txt
+/.d*-python-packages/
+/.d*-python-packages.tmp-*/
 /d023-notebook-bundle-*.tar.gz
 /d028-notebook-bundle-*.tar.gz
+/d031-notebook-bundle-*.tar.gz
 /p2-*-artifacts-*.tar.gz
 
 # External experiment trackers

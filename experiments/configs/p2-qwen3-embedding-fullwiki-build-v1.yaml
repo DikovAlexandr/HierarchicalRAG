@@ -1,0 +1,77 @@
+schema_version: 1
+
+experiment:
+  id: p2-qwen3-embedding-fullwiki-build-v1
+  hypothesis_id: E1
+  decision_ids: [D027, D028, D031]
+  owner: alexander_dikov
+  stage: corpus_index_build
+  exact_command: python -m hierarchical_rag.run_dense_fullwiki_build --config experiments/configs/p2-qwen3-embedding-fullwiki-build-v1.yaml
+  seeds: []
+  stopping_rule: Encode the complete audited text-only corpus once with the frozen D028 protocol; commit immutable 32,768-document shards; resume only the identical partial build; stop an attempt at 27,000 wall-clock seconds; do not open questions, labels, or retrieval quality before the completed index manifest is audited and pinned.
+  exclusions: [the_94_audited_empty_text_records_from_D005]
+
+dataset:
+  name: hotpotqa_fullwiki_20171001_abstracts
+  split: corpus_only
+  labels_observed: false
+  source_file: data/raw/hotpotqa/enwiki-20171001-pages-meta-current-withlinks-abstracts.tar.bz2
+  source_url: https://nlp.stanford.edu/projects/hotpotqa/enwiki-20171001-pages-meta-current-withlinks-abstracts.tar.bz2
+  source_revision: enwiki-20171001
+  source_size_bytes: 1553565403
+  source_md5: 01edf64cd120ecc03a2745352779514c
+  source_sha256: 1acca1c5cc93c4890ea51091d2bad7c3ef6987aead127ab88728dc9e26555729
+  license: CC-BY-SA-4.0
+  empty_text_policy: skip
+  expected_source_record_count: 5233329
+  expected_skipped_empty_text: 94
+  expected_indexed_document_count: 5233235
+
+retriever:
+  type: frozen_dense_biencoder
+  id: Qwen/Qwen3-Embedding-0.6B
+  revision: 97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+  architecture: qwen3
+  parameter_count_expected: 595776512
+  frozen: true
+  dtype: bfloat16
+  torch_version: 2.5.1+cu121
+  transformers_version: 5.9.0
+  serialization: text_only
+  query_instruction: Given a web search query, retrieve relevant passages that answer the query
+  pooling: last_non_padding_token
+  normalization: truncate_mrl_then_l2
+  output_dimension: 512
+  max_input_tokens: 512
+  attention_implementation: sdpa
+
+index:
+  schema_version: 1
+  output_dir: artifacts/indexes/qwen3-embedding-0.6b-fullwiki-v1
+  vector_file: vectors.fp16
+  metadata_file: documents.sqlite3
+  vector_dtype: float16_little_endian
+  dimension: 512
+  document_order: official_corpus_order_after_audited_empty_skip
+  similarity: exact_inner_product
+  tie_break: document_id_ascending
+
+evaluation:
+  primary_metric: not_applicable_corpus_index_build
+  secondary_metrics: [documents_per_second, tokens_per_second, truncated_document_rate, peak_allocated_bytes, encoded_unit_estimate]
+  statistics:
+    status: not_applicable_resource_and_artifact_build
+    quality_metrics_observed: false
+
+runtime:
+  device: cuda
+  expected_gpu_name_contains: A100
+  batch_size: 128
+  shard_documents: 32768
+  max_attempt_seconds: 27000
+  datasphere_configuration: g2.1
+  datasphere_units_per_second: 116
+  require_clean_worktree: true
+  dependency_lock_file: environments/hrm-text-gpu-py310.lock
+  dependency_lock_sha256: a4439c71efa6c4ce0354edbc732a0227d68106a62db5140917ea74d05a0dc647
+  output_dir: results/runs/p2-qwen3-embedding-fullwiki-build-v1

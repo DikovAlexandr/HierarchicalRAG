@@ -6,14 +6,14 @@ Last updated: 2026-07-26.
 
 The repository preparation, reproducibility infrastructure, metric validation, HRM-Text interface work, full BM25 retrieval run, and train-only reader feasibility studies are complete or substantially complete. The project has not yet produced a confirmatory HRM-versus-baseline comparison on shared validation evidence.
 
-The last reported DataSphere balance before the D028 calibration was 1,455,036/5,000,000 units. D029 protects the remaining compute with hard envelopes. The audited calibration projects 2,529,915 units for full-corpus dense encoding, so D030 rejects that build and returns its unused 220,000-unit envelope to H1. The exact post-calibration balance still needs to be read from the dashboard before another GPU run.
+The last reported DataSphere balance before the D028 calibration was 1,455,036/5,000,000 units. The project operator has since authorized at least 5,000,000 additional units. D031 therefore supersedes the earlier D029/D030 resource prohibition and authorizes the unchanged full-corpus D028 build, while retaining an explicit 27,000-second attempt cap and protected H1–H3/reproduction envelopes.
 
 The end-to-end project is approximately **47% complete** by research-stage exit criteria. This estimate is not based on code volume: feasibility, infrastructure, sparse retrieval, dense resource feasibility, and reader-budget diagnosis are complete, while the claim-bearing H1–H3 experiments remain mostly ahead.
 
 | Stage | Status | Completed | Remaining exit work |
 |---|---|---|---|
 | P1 — Feasibility | Complete | Pinned HRM-Text reference, deterministic train slice, metric harness, GPU environment, reader interfaces, and preserved failures | No remaining P1 work; baseline selection gates P3/E2 |
-| P2 — Retrieval | Closed with resource fallback | Full 7,405-example BM25 run, independent audit, bootstrap CI, error analysis, and independently audited D028 dense calibration | Bind immutable BM25 and gold-evidence caches to readers; report that dense quality was not measured because the preregistered cost gate failed |
+| P2 — Retrieval | Full dense build ready | Full 7,405-example BM25 run, independent audit, bootstrap CI, error analysis, audited D028 calibration, and tested resumable D031 builder | Encode and audit the full corpus, then pin and run exact dense validation search before binding immutable caches to readers |
 | P3 — Frozen HRM | In progress | HRM adapter and gold-evidence train smoke | Identical BM25-evidence smoke and confirmatory validation comparison |
 | P4 — Robustness | Prepared only | Deterministic distractor machinery | Shared-reader runs at 0, 1, 2, and 4 distractors with paired analysis |
 | P5 — Adaptation | Not started | Hypothesis and safeguards defined | Training data, low-level adaptation, seeds, ablations, and reasoning-retention evaluation |
@@ -31,7 +31,7 @@ The complete `e1-hotpotqa-fullwiki-bm25-v2` run contains 7,405 validation rankin
 
 The independent audit at revision `8bf5108` reproduced every ranking-derived metric and the 10,000-resample interval from the immutable raw records. Both supporting paragraphs are present in top 10 for only 2,061/7,405 examples (27.83%); 4,052 (54.72%) contain one supporting paragraph and 1,292 (17.45%) contain none. Across 14,810 gold paragraphs, 6,636 (44.81%) are absent from top 10. D027 therefore keeps BM25 as the frozen sparse baseline and requires one pretrained dense-retrieval ablation before confirmatory reader conclusions. These values still do not measure reader quality.
 
-The D028 label-free calibration successfully loaded the pinned `Qwen/Qwen3-Embedding-0.6B` revision on one A100 and encoded 8,192 measured systematic corpus documents in 27.312 seconds: 299.939 documents/second and 20,783 tokens/second. The independently recomputed 1.25x-reserved full-corpus projection is 21,809.6 seconds, or 2,529,915 DataSphere units. This exceeds the frozen 180,000-unit gate by 2,349,915 units and exceeds the entire pre-calibration balance by 1,074,879 units. Peak allocated memory was 12.73 GB and the projected FP16 matrix is 4.99 GiB, so traversal time and billing—not GPU memory or storage—are binding. D030 therefore closes the dense build without opening validation labels or retrieval quality. This is a resource result, not evidence that Qwen3-Embedding is weak.
+The D028 label-free calibration successfully loaded the pinned `Qwen/Qwen3-Embedding-0.6B` revision on one A100 and encoded 8,192 measured systematic corpus documents in 27.312 seconds: 299.939 documents/second and 20,783 tokens/second. The independently recomputed 1.25x-reserved full-corpus projection is 21,809.6 seconds, or 2,529,915 DataSphere units. This exceeded the former 180,000-unit gate and the entire pre-calibration balance, so D030 correctly stopped the build under the earlier budget. Peak allocated memory was 12.73 GB and the projected FP16 matrix is 4.99 GiB, so traversal time and billing—not GPU memory or storage—are binding. After the operator authorized at least 5,000,000 additional units, D031 reopened the unchanged protocol without using any quality observation. Dense retrieval quality remains unknown.
 
 ### Native-thinking baseline feasibility
 
@@ -84,22 +84,22 @@ Raw archives are stored locally under `results/runs/_archives/`; extracted immut
 
 ## Next gates
 
-1. Read and record the post-calibration DataSphere balance; release any active GPU notebook immediately.
-2. Benchmark a batched reader implementation on fixed synthetic/train-only prompts and select execution by units per completed example, not hourly price or idle VRAM.
-3. Ask the mentor to approve the final E2 baseline family. The recommended proposal is Qwen2.5-1.5B-Instruct under the shared primary budget, with Qwen3.5-2B at the expanded ceiling only as a labeled secondary control.
-4. Record a new decision that freezes the E2 models, shared BM25/gold evidence and token contract, sample size, seeds, paired tests, confidence intervals, effect size, and multiple-comparison correction.
-5. Run a train-only HRM/primary-baseline smoke on byte-identical cached evidence.
-6. Only after that gate passes, run the frozen validation comparison for H1, followed by H2 robustness and H3 adaptation.
+1. Run the corpus-only `p2-qwen3-embedding-fullwiki-build-v1` command on A100; preserve its shard checkpoints and artifact archive even on failure.
+2. Independently audit the completed vector/metadata manifest and add their exact checksums to a new dense E1 config before opening validation questions.
+3. Run exact dense search on all 7,405 examples, audit retrieval metrics, and freeze immutable BM25/dense/gold evidence caches.
+4. Benchmark a batched reader implementation on fixed synthetic/train-only prompts and select execution by units per completed example.
+5. Freeze the mentor-facing E2 baseline family, shared evidence/token contract, sample size, seeds, paired tests, confidence intervals, effect size, and multiple-comparison correction.
+6. Run the train-only shared-evidence gate, then H1 validation, H2 robustness, and H3 adaptation in that order.
 
-No full-corpus D028 build and no additional D017 or D023 run is authorized. The next GPU work is a separate non-claim-bearing batched reader throughput benchmark. It must not open validation labels; E2 shared-evidence inference remains blocked until its protocol and mentor-facing baseline choice are frozen.
+No additional D017 or D023 run is authorized. The next GPU work is the D031 corpus-only full build; it must not open validation labels. Query search and E2 remain blocked until the completed index is independently audited and pinned.
 
-### Remaining compute envelopes (D029)
+### Expanded compute envelopes (D031)
 
 | Work | Units | A100-equivalent time | Rule |
 |---|---:|---:|---|
-| D028 + reader calibration/infrastructure | 75,000 | 10.8 min | D028 complete; reconcile actual spend before the reader gate |
-| Full dense build, queries, exact search | 0 | 0 min | Rejected by D030; former 220,000-unit envelope returned to H1 |
-| H1 primary comparison | up to 770,000 | up to 110.6 min | Highest claim-bearing priority; cap by the post-calibration live balance |
-| H2 robustness | 250,000 | 35.9 min | Freeze sample/noise matrix before execution |
-| H3 adaptation and retention | 210,000 | 30.2 min | Minimum defensible seeds/ablations first |
-| Failure and reproduction reserve | 150,000 | 21.6 min | Cannot be spent without a new decision |
+| Full dense corpus build | 3,200,000 | 7.66 h | One unchanged resumable build; 27,000-second attempt cap |
+| Dense query encoding and exact search | 300,000 | 43.1 min | Blocked until completed index checksums are audited and pinned |
+| H1 primary comparison | 1,000,000 | 2.39 h | Highest claim-bearing reader priority |
+| H2 robustness | 400,000 | 57.5 min | Freeze sample/noise matrix before execution |
+| H3 adaptation and retention | 350,000 | 50.3 min | Minimum defensible seeds/ablations first |
+| Failure and reproduction reserve | at least 1,200,000 | at least 2.87 h | Cannot be consumed by ordinary successful runs |

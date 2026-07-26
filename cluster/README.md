@@ -162,3 +162,59 @@ build, and an idle Notebook continues consuming units.
 ## Fullwiki storage
 
 The pinned HotpotQA introduction archive is 1,553,565,403 bytes with official MD5 `01edf64cd120ecc03a2745352779514c`. Keep it in the writable data mount and build the SQLite index in the ignored `artifacts/indexes/` or a cluster scratch path that is copied to durable storage with its manifest and checksum.
+
+### D031 resumable fullwiki dense build
+
+D031 reopens the unchanged D028 corpus build after the compute budget was
+expanded. This command remains corpus-only: it does not bundle validation
+questions and cannot produce retrieval quality. The single upload bundle embeds
+the checksum-verified 1.55 GB official corpus, so its construction and upload
+take materially longer than earlier bundles:
+
+```powershell
+python cluster/datasphere/prepare_d031_notebook_bundle.py
+```
+
+Upload `d031-notebook-bundle-<revision>.tar.gz` to `/home/jupyter/project`,
+select `g2.1` (A100), and run the following Python cell after substituting the
+exact filename:
+
+```python
+from pathlib import Path, PurePosixPath
+import subprocess
+import tarfile
+
+project_dir = Path("/home/jupyter/project")
+bundle = project_dir / "d031-notebook-bundle-<revision>.tar.gz"
+
+with tarfile.open(bundle, "r:gz") as archive:
+    members = archive.getmembers()
+    if not members or any(
+        (path := PurePosixPath(member.name)).is_absolute()
+        or ".." in path.parts
+        or not path.parts
+        or path.parts[0] != "HierarchicalRAG"
+        for member in members
+    ):
+        raise RuntimeError("Unsafe or unexpected bundle layout")
+    archive.extractall(project_dir)
+
+# The verified corpus is now inside HierarchicalRAG; remove only the exact
+# uploaded bundle to reclaim its duplicate 1.55 GB before allocating vectors.
+bundle.unlink()
+
+completed = subprocess.run(
+    ["bash", "cluster/datasphere/run-d031-notebook.sh"],
+    cwd=project_dir / "HierarchicalRAG",
+    check=False,
+)
+print(f"runner_exit_status={completed.returncode}")
+```
+
+The progress bar covers all 5,233,235 documents and each committed 32,768-item
+shard prints its checksum. If the attempt stops, download the printed artifact
+archive, leave `artifacts/indexes/qwen3-embedding-0.6b-fullwiki-v1.building`
+untouched, and rerun the same committed bundle: it resumes at the next shard.
+On success, download the small artifact archive and release the VM. Keep the
+large completed index on persistent project storage; validation search is a
+separate command that will be frozen only after its manifest is audited.
