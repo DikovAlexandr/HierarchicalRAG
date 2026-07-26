@@ -60,14 +60,14 @@ datasphere --profile <profile> project job execute \
 
 The job definition uploads only declared code, configuration, lock, and ignored processed inputs, then downloads all nine required run records. Preserve failed jobs and their logs; never rerun or alter the prompt because an observed answer is inconvenient.
 
-The D018 Notebook fallback is restricted to D017 pre-container Job failures. It uses the version-equivalent, hash-pinned Python 3.10 lock recorded in D019. D020 preserves the completed failed LFM2.5 gate and forbids repeating it. Use only a prepared clean-source bundle containing `SOURCE_REVISION.txt`; after reviewing LFM2.5, run Qwen3.5-0.8B next:
+The D018 Notebook fallback is restricted to D017 pre-container Job failures. It uses the version-equivalent, hash-pinned Python 3.10 lock recorded in D019. D020 and D021 preserve the completed failed LFM2.5 and Qwen3.5-0.8B gates and forbid repeating them. Use only a prepared clean-source bundle containing `SOURCE_REVISION.txt`; after reviewing both failures, run Qwen3.5-2B once:
 
 ```bash
 bash cluster/datasphere/run-d017-notebook.sh \
-  experiments/configs/p1-qwen3.5-0.8b-thinking-gold-train-smoke-v5.yaml
+  experiments/configs/p1-qwen3.5-2b-thinking-gold-train-smoke-v5.yaml
 ```
 
-The script rejects the consumed LFM2.5 attempt, unsupported configs, a non-A100 GPU, dependency-version drift, concurrent execution, and non-empty run directories. It reports bootstrap/model stages, per-example progress, and a 15-second generation heartbeat; it always packages the terminal log and any standard run artifacts for download. Inspect and preserve the 0.8B result before placing the 2B config in a later bundle. Notebook efficiency measurements are not directly comparable with pinned-container Job measurements.
+The script rejects the consumed LFM2.5 and Qwen3.5-0.8B attempts, unsupported configs, a non-A100 GPU, dependency-version drift, concurrent execution, and non-empty run directories. It reports bootstrap/model stages, per-example progress, and a 15-second generation heartbeat; it always packages the terminal log and any standard run artifacts for download. Notebook efficiency measurements are not directly comparable with pinned-container Job measurements.
 
 ## Fullwiki storage
 

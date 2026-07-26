@@ -3,14 +3,14 @@ schema_version: 1
 experiment:
   id: p1-qwen3.5-2b-thinking-gold-train-smoke-v5
   hypothesis_id: P1
-  decision_ids: [D001, D002, D008, D009, D013, D014, D015, D016, D017, D018, D019, D020]
+  decision_ids: [D001, D002, D008, D009, D013, D014, D015, D016, D017, D018, D019, D020, D021]
   owner: alexander_dikov
   stage: train_only_native_thinking_final_gate
   exact_command: PYTHONPATH=src python -m hierarchical_rag.run_native_thinking_smoke --config experiments/configs/p1-qwen3.5-2b-thinking-gold-train-smoke-v5.yaml
   seeds: [0]
   stopping_rule: Run the fixed 16 targets once; pass only with explicit reasoning and a parseable final answer for all 16, zero 2048-token exhaustion, zero target-evidence truncation, and complete provenance artifacts.
   exclusions: []
-  claim_scope: Final exploratory train-only native-thinking compatibility gate under D017-D020 Notebook fallback; no H1, validation, HRM-comparison, cross-environment efficiency, or article-result claim.
+  claim_scope: Final exploratory train-only native-thinking compatibility gate under D017-D021 Notebook fallback; no H1, validation, HRM-comparison, cross-environment efficiency, or article-result claim.
 
 dataset:
   name: hotpot_qa
