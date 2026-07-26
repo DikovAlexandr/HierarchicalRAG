@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "decision_id": "D023",
+  "audit": {
+    "integrity_status": "passed",
+    "paired_stream_status": "passed",
+    "audit_source_revision": "ebfb9877b8fefc7f3d3aab873a195a78d03c264a"
+  },
+  "provenance": {
+    "original_source_revision": "a3b3ad38673bb07b8a4d1db56397815ce05e82a3",
+    "combined_archive": "results/runs/_archives/d023-expanded-output-series-artifacts-20260726T170040Z.tar.gz",
+    "combined_archive_sha256": "36176790bca40bb1bb701673d7c2dac7b31c09e92b2ccd6c3b5e19acd8093c5f",
+    "bootstrap_log_sha256": "11cd5ced1f6e5e00232cda1b502f4e368751d0f97354a03d05de290d4a65643b",
+    "hardware": "NVIDIA A100-SXM4-80GB"
+  },
+  "runs": [
+    {
+      "experiment_id": "p1-lfm2.5-thinking-gold-train-budget-4096-v1",
+      "archive_sha256": "7809f11b5cdd6f698729319e836ff97c162e0417c52309d744491ad834fc1133",
+      "manifest_sha256": "6f480fd3b547e2824a995def59f3f1095833640b0588625a157e930869c83536",
+      "resolved_config_sha256": "3bd02fcf6ee54c8496f40e19d21eae23e861e0d10b37b1a56fcf4f37feff3164",
+      "predictions_sha256": "b6d40f257a86c9af5d30a57b6a70bf36f80319488ce9929d547b154f2a5fe68c",
+      "metrics_sha256": "359b3df40bb0138a770e14b550cf62e557ebf0c042209c8576b5e576fbac4391",
+      "interface_gate_passed": false,
+      "valid_extraction_count": 14,
+      "budget_exhausted_count": 2,
+      "answer_exact_match": 0.625,
+      "answer_f1": 0.65625,
+      "generated_tokens_total": 20644,
+      "evaluation_seconds": 272.7634197970001,
+      "peak_allocated_bytes": 2450910208
+    },
+    {
+      "experiment_id": "p1-lfm2.5-thinking-gold-train-budget-8192-v1",
+      "archive_sha256": "b4c8019c5b943db8ecd34974b10814187ccf37cc264f3dbdddd954f7cd209d60",
+      "manifest_sha256": "63043e07dc1ad6731fd5b2b5bff77c3c852569ebe610cdcdc4396059d56192ae",
+      "resolved_config_sha256": "5e20700e1e275765612a969fae628a371e7dae68b292ba347c10b65c34929418",
+      "predictions_sha256": "61bb9f59594fd7f5a7b3f71a69cdc05baff19156756cda15d402841c4b047faa",
+      "metrics_sha256": "477dd653c13efa01076150a885b96920810d8f2c1f93e40bbdac7ed3f65b8ec5",
+      "interface_gate_passed": false,
+      "valid_extraction_count": 14,
+      "budget_exhausted_count": 2,
+      "answer_exact_match": 0.6875,
+      "answer_f1": 0.71875,
+      "generated_tokens_total": 28836,
+      "evaluation_seconds": 390.6555825630021,
+      "peak_allocated_bytes": 2475635200
+    },
+    {
+      "experiment_id": "p1-qwen3.5-2b-thinking-gold-train-budget-4096-v1",
+      "archive_sha256": "de491ff63da27c8db7b5fc3ed53499a2dcccdb91aaa8e95a7c240f89c0157599",
+      "manifest_sha256": "a942d768b13ccc3aa819c5100ffc6b3d2f5db7e72e5738d235af514f7263413f",
+      "resolved_config_sha256": "d306aae0a290177f0ab725b96dab7d133bc00013ea3f96aa9aacf4f8708bd446",
+      "predictions_sha256": "687fb156bfa54fbe349c4a23459f4c88303bb3aa5416d95eab8a3f92c9c2bd46",
+      "metrics_sha256": "708ed7bda22b6a4ddddde2a1426c21a3fd6fe032c41897c3a3775dbd90087381",
+      "interface_gate_passed": false,
+      "valid_extraction_count": 15,
+      "budget_exhausted_count": 1,
+      "answer_exact_match": 0.875,
+      "answer_f1": 0.875,
+      "generated_tokens_total": 37071,
+      "evaluation_seconds": 1248.1232665800017,
+      "peak_allocated_bytes": 4608635904
+    },
+    {
+      "experiment_id": "p1-qwen3.5-2b-thinking-gold-train-budget-8192-v1",
+      "archive_sha256": "e73a5e80c8c05e2b26427f751727bd31b299a2958b4144259d9c49d050573a5e",
+      "manifest_sha256": "4801c807c0ae5ce849195c6b24f241488a190317b571d91518f87703213f7a8c",
+      "resolved_config_sha256": "a359d0264f4c0362ef59eea71da448d1e50c50f44555fedcf076617d16f7c940",
+      "predictions_sha256": "3ea0c1eb4216881e3d94d49d969a4a4b57b6fb05a5cc75da96899ced718aaa3f",
+      "metrics_sha256": "21eaac2b84582b54575145d43880dc1cd3a0e1c35fe7745fd0222862c4f74582",
+      "interface_gate_passed": true,
+      "valid_extraction_count": 16,
+      "budget_exhausted_count": 0,
+      "answer_exact_match": 0.875,
+      "answer_f1": 0.875,
+      "generated_tokens_total": 37737,
+      "evaluation_seconds": 1288.8755339870004,
+      "peak_allocated_bytes": 4608635904
+    }
+  ],
+  "paired_budget_checks": {
+    "lfm2.5": {
+      "same_example_order": true,
+      "same_generation_seeds": true,
+      "same_prompt_hashes": true,
+      "unchanged_nonexhausted_4096_outputs": true,
+      "raw_output_equal_count": 14,
+      "differing_examples": [
+        {
+          "example_id": "5ab2b784554299545a2cfa1f",
+          "tokens_4096": 4096,
+          "tokens_8192": 8192,
+          "exhausted_4096": true,
+          "exhausted_8192": true,
+          "extraction_4096": "missing_final_answer",
+          "extraction_8192": "missing_final_answer"
+        },
+        {
+          "example_id": "5ab280b95542997061209642",
+          "tokens_4096": 4096,
+          "tokens_8192": 8192,
+          "exhausted_4096": true,
+          "exhausted_8192": true,
+          "prediction_4096": "Guel",
+          "prediction_8192": "Guelders"
+        }
+      ]
+    },
+    "qwen3.5-2b": {
+      "same_example_order": true,
+      "same_generation_seeds": true,
+      "same_prompt_hashes": true,
+      "unchanged_nonexhausted_4096_outputs": true,
+      "raw_output_equal_count": 15,
+      "differing_examples": [
+        {
+          "example_id": "5ae109f755429920d523429e",
+          "tokens_4096": 4096,
+          "tokens_8192": 4762,
+          "exhausted_4096": true,
+          "exhausted_8192": false,
+          "extraction_4096": "missing_final_answer",
+          "extraction_8192": "ok",
+          "prediction_8192": "English footballers"
+        }
+      ]
+    }
+  },
+  "claim_scope": "Exploratory train-only output-budget feasibility only; no H1, validation, model-selection-by-quality, or article-result claim."
+}

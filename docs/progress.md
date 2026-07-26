@@ -6,7 +6,7 @@ Last updated: 2026-07-26.
 
 The repository preparation, reproducibility infrastructure, metric validation, HRM-Text interface work, full BM25 retrieval run, and train-only reader feasibility studies are complete or substantially complete. The project has not yet produced a confirmatory HRM-versus-baseline comparison on shared validation evidence.
 
-The end-to-end project is approximately **40% complete** by research-stage exit criteria. This estimate is not based on code volume: feasibility and infrastructure are advanced, while the claim-bearing H1–H3 experiments remain mostly ahead.
+The end-to-end project is approximately **42% complete** by research-stage exit criteria. This estimate is not based on code volume: feasibility, infrastructure, retrieval, and reader-budget diagnosis are advanced, while the claim-bearing H1–H3 experiments remain mostly ahead.
 
 | Stage | Status | Completed | Remaining exit work |
 |---|---|---|---|
@@ -43,6 +43,21 @@ This supports a limited negative conclusion: these three native-thinking checkpo
 
 The exploratory train-only answer scores are retained for diagnosis but cannot be used for H1 or model selection. Decisions D020–D022 prevent output-dependent reruns or relaxation of the gate.
 
+### Expanded-output sensitivity
+
+D023 tested the two preregistered modern readers at 4,096 and 8,192 output-token ceilings on the unchanged 16-example train slice with cap-stable per-example seeds.
+
+| Model | Output ceiling | Valid answers | Exhausted | Generated tokens | Mean latency | Gate |
+|---|---:|---:|---:|---:|---:|---|
+| LFM2.5-1.2B-Thinking | 4,096 | 14/16 | 2/16 | 20,644 | 17.0 s | Failed |
+| LFM2.5-1.2B-Thinking | 8,192 | 14/16 | 2/16 | 28,836 | 24.4 s | Failed |
+| Qwen3.5-2B | 4,096 | 15/16 | 1/16 | 37,071 | 78.0 s | Failed |
+| Qwen3.5-2B | 8,192 | 16/16 | 0/16 | 37,737 | 80.5 s | Passed |
+
+For Qwen, 15/16 raw outputs were identical across ceilings; the remaining example continued from 4,096 to 4,762 tokens and then terminated normally. Thus 8,192 is a safety ceiling rather than a cost paid on every example. For LFM, the same two examples consumed the full 4,096 and 8,192 ceilings, so the added budget increased cost without resolving the looping behavior. Qwen3.5-2B is therefore feasible only as an expanded-budget secondary control under D026; LFM is closed after this negative result. The train-only EM/F1 values are diagnostic and cannot support H1 or model selection.
+
+Peak allocated memory was 4.61 GB for Qwen and 2.48 GB for LFM on an 80 GB A100. This confirms that the current sequential runner is not memory-limited and must not be scaled to validation before a batching and cost-per-example hardware benchmark.
+
 ## Relation to the research hypotheses
 
 - **H1 — HRM reasoning advantage:** not tested. HRM and an accepted baseline have not yet been compared on identical cached validation evidence.
@@ -58,14 +73,16 @@ Raw archives are stored locally under `results/runs/_archives/`; extracted immut
 - `results/reviews/p1-lfm2.5-thinking-gold-train-smoke-v3.audit.json`;
 - `results/reviews/p1-qwen3.5-0.8b-thinking-gold-train-smoke-v5.audit.json`;
 - `results/reviews/p1-qwen3.5-2b-thinking-gold-train-smoke-v5.audit.json`;
+- `results/reviews/d023-expanded-output-series.audit.json`;
 - `results/summary.csv`.
 
 ## Next gates
 
 1. Independently audit the complete E1 artifact and perform retrieval error analysis.
-2. Ask the mentor to approve the final E2 baseline family. The recommended proposal is to retain the native-thinking failures as negative feasibility evidence and use the already validated Qwen2.5-1.5B-Instruct model as the CoT control.
-3. Record a new decision that freezes the E2 models, shared evidence and token contract, sample size, seeds, paired tests, confidence intervals, effect size, and multiple-comparison correction.
-4. Run a train-only HRM/Qwen2.5 smoke on byte-identical cached BM25 evidence.
-5. Only after that gate passes, run the frozen validation comparison for H1, followed by H2 robustness and H3 adaptation.
+2. Benchmark a batched reader implementation on fixed train-only prompts across available GPUs and select hardware by cost per completed example, not hourly price or VRAM capacity.
+3. Ask the mentor to approve the final E2 baseline family. The recommended proposal is Qwen2.5-1.5B-Instruct under the shared primary budget, with Qwen3.5-2B at the expanded ceiling only as a labeled secondary control.
+4. Record a new decision that freezes the E2 models, shared evidence and token contract, sample size, seeds, paired tests, confidence intervals, effect size, and multiple-comparison correction.
+5. Run a train-only HRM/primary-baseline smoke on byte-identical cached BM25 evidence.
+6. Only after that gate passes, run the frozen validation comparison for H1, followed by H2 robustness and H3 adaptation.
 
-No additional D017 GPU run is authorized. A GPU is needed again only after the E2 decision and shared-evidence smoke configuration are ready.
+No additional D017 or D023 GPU run is authorized. The next GPU work is a train-only throughput benchmark, followed by the E2 shared-evidence smoke only after its protocol is frozen.

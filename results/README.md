@@ -8,4 +8,4 @@ Add a summary row only after metric validation and after the experiment ID resol
 
 Results from exploratory runs must be labeled and cannot support final claims until repeated under a predefined confirmatory configuration.
 
-Tracked `reviews/*.audit.json` files contain deterministic audits of immutable raw artifacts when a technical failure prevented normal finalization. An audit may recover only values derivable from checksummed raw records; unavailable runtime fields remain explicit. It does not change the original run status or authorize a rerun.
+Tracked `reviews/*.audit.json` files contain deterministic audits of immutable raw artifacts, including complete-run verification and narrowly scoped recovery after a technical finalization failure. An audit may recover only values derivable from checksummed raw records; unavailable runtime fields remain explicit. It does not change the original run status or authorize a rerun.
