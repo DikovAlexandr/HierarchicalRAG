@@ -233,6 +233,16 @@ Required fields: ID, date, owner, status, decision, alternatives, evidence, expe
 - **Impact:** these runs answer whether the two contemporary controls become operationally usable when allowed more sequential reasoning, and quantify the associated token/time cost. The paired 4,096/8,192 cells may be compared within D023 because their per-example random streams are cap-stable; the earlier D017 2,048-output results remain contextual pilot evidence rather than a formally pooled curve point. These runs cannot support H1, replace the resource-matched primary E2 panel, or select a model by train answer quality. Any model-specific result above 4,096 total tokens must be labeled an asymmetric expanded-budget secondary result. Mentor approval and a subsequent decision are still required before choosing the primary E2 baseline or opening reader validation.
 - **Revisit when:** all four cells and their immutable artifacts have been audited, or a technical failure occurs before model generation. Any new cap, seed, model, sampler, prompt, parser, data slice, or validation run requires a new recorded decision before execution.
 
+### D024 — Probe the DataSphere Notebook Python interpreter before bootstrap
+
+- **Date / owner:** 2026-07-26 / alexander_dikov.
+- **Status:** accepted after a D023 bootstrap-only failure and before any D023 model loading or output.
+- **Decision:** select the D023 bootstrap interpreter only after it successfully executes a CPython 3.10 version probe. Check an explicit `D023_BOOTSTRAP_PYTHON` first, then `/usr/local/bin/python3`, `/usr/bin/python3`, the DataSphere kernel paths, and PATH fallbacks. Reject existing but non-runnable binaries and report them. Keep the D023 data, models, prompts, samplers, seeds, token ceilings, matrix, and stopping rule unchanged.
+- **Alternatives:** continue selecting the first path returned by `command -v`; hard-code `/usr/local/bin/python3`; install the missing shared library for `/kernel/bin/python`; change the dependency lock or Python ABI.
+- **Evidence:** the first bundle at source revision `702e2fcc220152545e4bf0c44e921ec5f558e6ac` selected `/kernel/bin/python`, but the binary could not load `libpython3.11.so.1.0`; bootstrap stopped with exit status 127 before dependency installation, model loading, or generation. Earlier preserved DataSphere Notebook runs successfully used `/usr/local/bin/python3` with the CPython 3.10 lock from D018.
+- **Impact:** the failed bootstrap is a preserved infrastructure failure, not a consumed D023 experiment cell. A replacement bundle may execute the unchanged four-cell series. Requiring an executable CPython 3.10 probe prevents a path from being accepted merely because it exists and keeps wheel selection compatible with the pinned Notebook lock.
+- **Revisit when:** DataSphere changes its Notebook Python ABI or no runnable CPython 3.10 interpreter is available. Any ABI or dependency-lock change must be recorded before retrying.
+
 ## New decision template
 
 ### DXXX — Short title

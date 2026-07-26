@@ -89,20 +89,32 @@ BOOTSTRAP_LOG="${LOG_DIR}/d023-bootstrap.${SERIES_UTC}.terminal.log"
 mkdir -p "${LOG_DIR}"
 
 BOOTSTRAP_PYTHON=""
+REJECTED_PYTHONS=()
 for candidate in \
   "${D023_BOOTSTRAP_PYTHON:-}" \
+  /usr/local/bin/python3 \
+  /usr/bin/python3 \
   /kernel/bin/python \
   /kernel/bin/python3 \
   python3 \
   python
 do
-  if [[ -n "${candidate}" ]] && command -v "${candidate}" >/dev/null 2>&1; then
-    BOOTSTRAP_PYTHON="$(command -v "${candidate}")"
-    break
+  if [[ -n "${candidate}" ]] && resolved="$(command -v "${candidate}" 2>/dev/null)"; then
+    if "${resolved}" -c \
+      'import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 10) else 1)' \
+      >/dev/null 2>&1
+    then
+      BOOTSTRAP_PYTHON="${resolved}"
+      break
+    fi
+    REJECTED_PYTHONS+=("${resolved}")
   fi
 done
 if [[ -z "${BOOTSTRAP_PYTHON}" ]]; then
-  echo "No Python interpreter found; set D023_BOOTSTRAP_PYTHON explicitly" >&2
+  echo "No runnable CPython 3.10 interpreter found; set D023_BOOTSTRAP_PYTHON explicitly" >&2
+  if [[ "${#REJECTED_PYTHONS[@]}" -gt 0 ]]; then
+    printf 'Rejected Python candidates: %s\n' "${REJECTED_PYTHONS[*]}" >&2
+  fi
   exit 127
 fi
 
@@ -116,6 +128,9 @@ package_dir_is_valid() {
 
 bootstrap_environment() {
   echo "stage=bootstrap_python_ready executable=${BOOTSTRAP_PYTHON}"
+  if [[ "${#REJECTED_PYTHONS[@]}" -gt 0 ]]; then
+    echo "stage=bootstrap_python_candidates_rejected candidates=${REJECTED_PYTHONS[*]}"
+  fi
 
   if package_dir_is_valid "${PACKAGE_DIR}"; then
     echo "stage=package_environment_ready source=existing_complete_install path=${PACKAGE_DIR}"
