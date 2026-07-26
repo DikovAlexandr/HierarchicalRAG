@@ -35,8 +35,9 @@ fi
 
 LOG_DIR="notebook-logs"
 RUN_DIR="results/runs/${EXPERIMENT_ID}"
-LOG_FILE="${LOG_DIR}/${EXPERIMENT_ID}.terminal.log"
-ARCHIVE="${EXPERIMENT_ID}-artifacts.tar.gz"
+ATTEMPT_UTC="$(date -u +%Y%m%dT%H%M%SZ)"
+LOG_FILE="${LOG_DIR}/${EXPERIMENT_ID}.${ATTEMPT_UTC}.terminal.log"
+ARCHIVE="${EXPERIMENT_ID}-artifacts-${ATTEMPT_UTC}.tar.gz"
 mkdir -p "${LOG_DIR}"
 
 if [[ -d "${RUN_DIR}" ]] && find "${RUN_DIR}" -mindepth 1 -print -quit | grep -q .; then
@@ -47,13 +48,38 @@ fi
 set +e
 (
   set -e
-  python -m pip install --disable-pip-version-check --no-cache-dir \
+
+  BOOTSTRAP_PYTHON=""
+  for candidate in \
+    "${D017_BOOTSTRAP_PYTHON:-}" \
+    python \
+    python3 \
+    /kernel/bin/python \
+    /kernel/bin/python3
+  do
+    if [[ -n "${candidate}" ]] && command -v "${candidate}" >/dev/null 2>&1; then
+      BOOTSTRAP_PYTHON="$(command -v "${candidate}")"
+      break
+    fi
+  done
+  if [[ -z "${BOOTSTRAP_PYTHON}" ]]; then
+    echo "No Python interpreter found; set D017_BOOTSTRAP_PYTHON explicitly" >&2
+    exit 127
+  fi
+
+  VENV_DIR="${ROOT}/.venv-d017"
+  if [[ ! -x "${VENV_DIR}/bin/python" ]]; then
+    "${BOOTSTRAP_PYTHON}" -m venv "${VENV_DIR}"
+  fi
+  PYTHON_BIN="${VENV_DIR}/bin/python"
+
+  "${PYTHON_BIN}" -m pip install --disable-pip-version-check --no-cache-dir \
     --index-url https://download.pytorch.org/whl/cu121 \
     "torch==2.5.1"
-  python -m pip install --disable-pip-version-check --no-cache-dir --no-deps \
+  "${PYTHON_BIN}" -m pip install --disable-pip-version-check --no-cache-dir --no-deps \
     --progress-bar off --require-hashes -r environments/hrm-text-gpu.lock
 
-  python - <<'PY'
+  "${PYTHON_BIN}" - <<'PY'
 import torch
 import transformers
 
@@ -73,7 +99,7 @@ PY
   export PYTHONHASHSEED=0
   export TOKENIZERS_PARALLELISM=false
   export HF_HUB_DISABLE_TELEMETRY=1
-  PYTHONPATH=src python -m hierarchical_rag.run_native_thinking_smoke \
+  PYTHONPATH=src "${PYTHON_BIN}" -m hierarchical_rag.run_native_thinking_smoke \
     --config "${CONFIG}"
 ) 2>&1 | tee "${LOG_FILE}"
 STATUS=${PIPESTATUS[0]}
