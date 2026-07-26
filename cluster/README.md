@@ -60,6 +60,14 @@ datasphere --profile <profile> project job execute \
 
 The job definition uploads only declared code, configuration, lock, and ignored processed inputs, then downloads all nine required run records. Preserve failed jobs and their logs; never rerun or alter the prompt because an observed answer is inconvenient.
 
+The D018 Notebook fallback is restricted to D017 pre-container Job failures. Use only a prepared clean-source bundle containing `SOURCE_REVISION.txt`, then run LFM2.5 first:
+
+```bash
+bash cluster/datasphere/run-d017-notebook.sh
+```
+
+The script rejects unsupported configs, a non-A100 GPU, dependency-version drift, and non-empty run directories. It always packages the terminal log and any standard run artifacts for download. Notebook efficiency measurements are not directly comparable with pinned-container Job measurements.
+
 ## Fullwiki storage
 
 The pinned HotpotQA introduction archive is 1,553,565,403 bytes with official MD5 `01edf64cd120ecc03a2745352779514c`. Keep it in the writable data mount and build the SQLite index in the ignored `artifacts/indexes/` or a cluster scratch path that is copied to durable storage with its manifest and checksum.

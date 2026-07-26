@@ -173,6 +173,16 @@ Required fields: ID, date, owner, status, decision, alternatives, evidence, expe
 - **Impact:** the completed 512-token runs are resource-feasibility results, not accuracy comparisons and not H1 evidence. The final gate can consume up to four times as many generated tokens and its cost/throughput must be retained. No validation, baseline selection by EM/F1, or article claim is authorized. If no current native-thinking model passes, the legacy Qwen2.5 instruct control remains preserved, but changing the mentor-facing baseline family requires discussion and a new decision.
 - **Revisit when:** any 2,048-input prompt truncates target evidence, the mentor changes the 4,096-token resource contract, or the final gate completes and the E2 panel must be frozen.
 
+### D018 — Permit a provenance-checked DataSphere Notebook fallback for D017
+
+- **Date / owner:** 2026-07-26 / alexander_dikov.
+- **Status:** accepted after four preserved pre-container Job failures and before any D017 model output was observed.
+- **Decision:** if DataSphere Jobs continues to reject the D017 job before creating an execution container, run the unchanged D017 runner from a clean committed source bundle on the project's A100 Notebook VM. Require the exact source revision, input checksums, model revisions, BF16 dtype, PyTorch 2.5.1+cu121, Transformers 5.9.0, sampling profiles, seed 0, parser, 2,048+2,048 budget, and standard nine-file artifact contract. Record the complete `pip freeze`, GPU identity, driver, CUDA runtime, and platform. Execute the models sequentially, starting with LFM2.5, and inspect each immutable result before starting the next model. Notebook latency, throughput, and memory are labeled environment-specific diagnostics and cannot be compared directly with results from the pinned Job container.
+- **Alternatives:** continue submitting identical Jobs indefinitely; change to a T4/V100 and FP16; loosen the environment checks; treat the failed infrastructure allocations as model-gate attempts; wait without using the available A100 Notebook VM.
+- **Evidence:** Jobs `bt18fkkgo731n376tt0q`, `bt12q21pjmc2oj1qp2s0`, `bt1fo3nqknprledga2lc`, and `bt1agronjnr0o6j00346` all ended in 3–5 seconds with `status_details: Job execution quota exhausted`, no logs, no diagnostics, no outputs, and no execution container. At the fourth failure the project had a 5,000,000-unit balance, Jobs and `g2.1` were allowed, and no project Job was active. The user provisioned an A100 Notebook VM, but project policy did not permit selecting the default remote-IDE VM needed to issue an external-IDE link.
+- **Impact:** a provenance-complete Notebook run may decide only the train-only D017 compatibility gate. It does not authorize validation use, H1 claims, output-dependent tuning, or cross-environment efficiency comparisons. The four allocation failures remain infrastructure evidence and do not consume D017's one model attempt.
+- **Revisit when:** a clean `g2.1` Job can start, any required version/checksum/hardware check fails in Notebook, or a Notebook result would be used beyond the D017 interface decision.
+
 ## New decision template
 
 ### DXXX — Short title
