@@ -67,19 +67,39 @@ set +e
     exit 127
   fi
 
-  VENV_DIR="${ROOT}/.venv-d017"
-  if [[ ! -x "${VENV_DIR}/bin/python" ]]; then
-    "${BOOTSTRAP_PYTHON}" -m venv "${VENV_DIR}"
+  PACKAGE_DIR="${ROOT}/.d017-python-packages"
+  PACKAGE_MARKER="${PACKAGE_DIR}/.install-complete"
+  if [[ ! -f "${PACKAGE_MARKER}" ]]; then
+    if [[ -e "${PACKAGE_DIR}" ]]; then
+      echo "Incomplete package directory exists: ${PACKAGE_DIR}" >&2
+      exit 2
+    fi
+    PACKAGE_TMP="${PACKAGE_DIR}.tmp-${ATTEMPT_UTC}"
+    mkdir -p "${PACKAGE_TMP}"
+
+    "${BOOTSTRAP_PYTHON}" -m pip install --disable-pip-version-check --no-cache-dir \
+      --target "${PACKAGE_TMP}" \
+      --index-url https://download.pytorch.org/whl/cu121 \
+      "torch==2.5.1"
+    "${BOOTSTRAP_PYTHON}" -m pip install --disable-pip-version-check --no-cache-dir \
+      --target "${PACKAGE_TMP}" --no-deps --progress-bar off --require-hashes \
+      -r environments/hrm-text-gpu.lock
+
+    PYTHONPATH="${PACKAGE_TMP}" "${BOOTSTRAP_PYTHON}" - <<'PY'
+import torch
+import transformers
+
+if torch.__version__ != "2.5.1+cu121":
+    raise RuntimeError(f"Expected torch 2.5.1+cu121, found {torch.__version__}")
+if transformers.__version__ != "5.9.0":
+    raise RuntimeError(f"Expected transformers 5.9.0, found {transformers.__version__}")
+PY
+
+    mv "${PACKAGE_TMP}" "${PACKAGE_DIR}"
+    touch "${PACKAGE_MARKER}"
   fi
-  PYTHON_BIN="${VENV_DIR}/bin/python"
 
-  "${PYTHON_BIN}" -m pip install --disable-pip-version-check --no-cache-dir \
-    --index-url https://download.pytorch.org/whl/cu121 \
-    "torch==2.5.1"
-  "${PYTHON_BIN}" -m pip install --disable-pip-version-check --no-cache-dir --no-deps \
-    --progress-bar off --require-hashes -r environments/hrm-text-gpu.lock
-
-  "${PYTHON_BIN}" - <<'PY'
+  PYTHONPATH="${PACKAGE_DIR}" "${BOOTSTRAP_PYTHON}" - <<'PY'
 import torch
 import transformers
 
@@ -99,7 +119,8 @@ PY
   export PYTHONHASHSEED=0
   export TOKENIZERS_PARALLELISM=false
   export HF_HUB_DISABLE_TELEMETRY=1
-  PYTHONPATH=src "${PYTHON_BIN}" -m hierarchical_rag.run_native_thinking_smoke \
+  PYTHONPATH="${PACKAGE_DIR}:src" "${BOOTSTRAP_PYTHON}" \
+    -m hierarchical_rag.run_native_thinking_smoke \
     --config "${CONFIG}"
 ) 2>&1 | tee "${LOG_FILE}"
 STATUS=${PIPESTATUS[0]}
