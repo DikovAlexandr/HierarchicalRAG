@@ -12,6 +12,7 @@ from hierarchical_rag.native_thinking import (
 from hierarchical_rag.run_native_thinking_smoke import (
     _claim_eligibility,
     _example_progress,
+    _generation_seed,
 )
 
 
@@ -103,6 +104,57 @@ def test_native_protocol_rejects_d017_with_old_allocation():
         validate_native_thinking_protocol(config)
 
 
+@pytest.mark.parametrize("max_new_tokens", [4096, 8192])
+@pytest.mark.parametrize(
+    "model_id",
+    ["LiquidAI/LFM2.5-1.2B-Thinking", "Qwen/Qwen3.5-2B"],
+)
+def test_native_protocol_accepts_d023_budget_sensitivity(
+    model_id, max_new_tokens
+):
+    config = _config(model_id)
+    config["experiment"]["stage"] = (
+        "train_only_native_thinking_budget_sensitivity"
+    )
+    config["experiment"]["decision_ids"].extend(("D017", "D023"))
+    config["prompt"]["max_input_tokens"] = 2048
+    config["prompt"]["max_new_tokens"] = max_new_tokens
+    config["prompt"]["total_reader_tokens"] = 2048 + max_new_tokens
+    config["runtime"]["sampling_seed_scope"] = "per_example_sha256_v1"
+
+    validate_native_thinking_protocol(config)
+
+
+def test_native_protocol_rejects_unapproved_d023_allocation():
+    config = _config("LiquidAI/LFM2.5-1.2B-Thinking")
+    config["experiment"]["stage"] = (
+        "train_only_native_thinking_budget_sensitivity"
+    )
+    config["experiment"]["decision_ids"].extend(("D017", "D023"))
+    config["prompt"]["max_input_tokens"] = 2048
+    config["prompt"]["max_new_tokens"] = 16384
+    config["prompt"]["total_reader_tokens"] = 18432
+    config["runtime"]["sampling_seed_scope"] = "per_example_sha256_v1"
+
+    with pytest.raises(ValueError, match="4096- or 8192-token output"):
+        validate_native_thinking_protocol(config)
+
+
+def test_native_protocol_rejects_d023_lower_scale_model():
+    config = _config("Qwen/Qwen3.5-0.8B")
+    config["experiment"]["stage"] = (
+        "train_only_native_thinking_budget_sensitivity"
+    )
+    config["experiment"]["decision_ids"].extend(("D017", "D023"))
+    config["prompt"]["max_input_tokens"] = 2048
+    config["prompt"]["max_new_tokens"] = 4096
+    config["prompt"]["total_reader_tokens"] = 6144
+    config["runtime"]["sampling_seed_scope"] = "per_example_sha256_v1"
+
+    with pytest.raises(ValueError, match="two preregistered core models"):
+        validate_native_thinking_protocol(config)
+
+
 def test_native_protocol_rejects_disabled_qwen_thinking():
     config = _config("Qwen/Qwen3.5-2B")
     config["prompt"]["chat_template_kwargs"]["enable_thinking"] = False
@@ -183,6 +235,28 @@ def test_example_progress_reports_bounded_bar_and_identity():
     assert "example_id=example-04" in message
 
 
+def test_per_example_seed_is_stable_and_example_specific():
+    first = _generation_seed(
+        base_seed=0,
+        example_id="example-01",
+        scope="per_example_sha256_v1",
+    )
+    repeated = _generation_seed(
+        base_seed=0,
+        example_id="example-01",
+        scope="per_example_sha256_v1",
+    )
+    second = _generation_seed(
+        base_seed=0,
+        example_id="example-02",
+        scope="per_example_sha256_v1",
+    )
+
+    assert first == repeated
+    assert first != second
+    assert 0 <= first < 2**64
+
+
 def test_claim_eligibility_uses_validated_token_allocation():
     assert _claim_eligibility(
         {"max_input_tokens": 2048, "max_new_tokens": 2048}
@@ -190,6 +264,18 @@ def test_claim_eligibility_uses_validated_token_allocation():
     assert _claim_eligibility(
         {"max_input_tokens": 3584, "max_new_tokens": 512}
     ) == "none; D013/D014 train-only compatibility gate"
+    assert _claim_eligibility(
+        {"max_input_tokens": 2048, "max_new_tokens": 4096}
+    ) == (
+        "none; D023 exploratory train-only expanded-output "
+        "budget-sensitivity study"
+    )
+    assert _claim_eligibility(
+        {"max_input_tokens": 2048, "max_new_tokens": 8192}
+    ) == (
+        "none; D023 exploratory train-only expanded-output "
+        "budget-sensitivity study"
+    )
     with pytest.raises(ValueError, match="unsupported native-thinking token allocation"):
         _claim_eligibility(
             {"max_input_tokens": 2048, "max_new_tokens": 512}

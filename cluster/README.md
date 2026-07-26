@@ -64,6 +64,29 @@ The D018 Notebook fallback was restricted to D017 pre-container Job failures. D0
 
 The historical script now rejects all three consumed attempts. Its source, configs, terminal logs, raw artifacts, and reviewed audits remain preserved for reproducibility. Notebook efficiency measurements are not directly comparable with pinned-container Job measurements.
 
+### D023 expanded-output Notebook series
+
+D023 is a separate train-only budget-sensitivity study and does not reopen D017 or change primary E2. Its fixed matrix contains LFM2.5-1.2B-Thinking and Qwen3.5-2B at 4,096 and 8,192 generated-token ceilings, with the same 2,048-token input ceiling and all other reader fields frozen. The series runner installs or reuses the pinned Notebook environment once, executes all four cells sequentially, emits example-level heartbeat progress, preserves failed cells, and creates both per-run and combined archives.
+
+Upload the prepared `d023-notebook-bundle-<revision>.tar.gz` to `/home/jupyter/project`, select the A100 VM, and run one Notebook cell:
+
+```bash
+set -o pipefail
+cd /home/jupyter/project
+tar -xzf d023-notebook-bundle-<revision>.tar.gz
+cd HierarchicalRAG
+bash cluster/datasphere/run-d023-notebook.sh all
+```
+
+The command prints `series_archive=...` when it finishes. Download that combined archive even if `series_exit_status` is nonzero; it contains the terminal logs and every available immutable run artifact. A single preregistered cell can be executed only for technical recovery before any model output exists:
+
+```bash
+bash cluster/datasphere/run-d023-notebook.sh \
+  experiments/configs/p1-lfm2.5-thinking-gold-train-budget-4096-v1.yaml
+```
+
+The runner refuses to overwrite a non-empty run directory. Do not delete or repeat a completed or model-output-producing D023 run merely because its result is unfavorable.
+
 ## Fullwiki storage
 
 The pinned HotpotQA introduction archive is 1,553,565,403 bytes with official MD5 `01edf64cd120ecc03a2745352779514c`. Keep it in the writable data mount and build the SQLite index in the ignored `artifacts/indexes/` or a cluster scratch path that is copied to durable storage with its manifest and checksum.

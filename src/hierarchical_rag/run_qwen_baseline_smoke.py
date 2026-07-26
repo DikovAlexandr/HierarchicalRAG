@@ -132,18 +132,13 @@ def execute_baseline_smoke(
             targets=targets,
             model_config=model_config,
             prompt_config=prompt_config,
+            runtime_config=runtime,
             seed=int(experiment["seeds"][0]),
         )
         write_json_atomic(run_dir / "metrics.json", metrics)
         write_json_atomic(
             run_dir / "statistics.json",
-            {
-                "status": "not_applicable",
-                "reason": (
-                    "Train-only n=16 baseline interface smoke; no model "
-                    "comparison or confirmatory claim."
-                ),
-            },
+            dict(config["evaluation"]["statistics"]),
         )
         log_lines.extend(
             [
@@ -210,6 +205,7 @@ def _run_model(
     targets: Sequence[Any],
     model_config: Mapping[str, Any],
     prompt_config: Mapping[str, Any],
+    runtime_config: Mapping[str, Any],
     seed: int,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     import torch

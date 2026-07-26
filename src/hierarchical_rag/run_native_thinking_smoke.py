@@ -53,6 +53,7 @@ def _run_model(
     targets: Sequence[Any],
     model_config: Mapping[str, Any],
     prompt_config: Mapping[str, Any],
+    runtime_config: Mapping[str, Any],
     seed: int,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     import torch
@@ -160,6 +161,11 @@ def _run_model(
         "w", encoding="utf-8", newline="\n"
     ) as retrieval_stream:
         for target_index, target in enumerate(targets, start=1):
+            generation_seed = _generation_seed(
+                base_seed=seed,
+                example_id=target.identifier,
+                scope=runtime_config.get("sampling_seed_scope", "global_run_v1"),
+            )
             evidence = gold_paragraphs(target)
             built = build_cot_chat_prompt(
                 demonstrations,
@@ -199,6 +205,8 @@ def _run_model(
                 flush=True,
             )
             torch.cuda.reset_peak_memory_stats()
+            torch.manual_seed(generation_seed)
+            torch.cuda.manual_seed_all(generation_seed)
             generation_started = time.perf_counter()
             with _GenerationHeartbeat(
                 example_index=target_index,
@@ -262,6 +270,7 @@ def _run_model(
                         "prompt_sha256": _sha256_text(built.prompt),
                         "input_tokens": actual_input_tokens,
                         "generated_tokens": generated_tokens,
+                        "generation_seed": generation_seed,
                         "budget_exhausted": generated_tokens
                         >= int(prompt_config["max_new_tokens"]),
                         "latency_seconds": latency,
@@ -316,6 +325,7 @@ def _run_model(
         "valid_extraction_rate": (evaluated_count - invalid_count) / evaluated_count,
         "invalid_output_count": invalid_count,
         "budget_exhausted_count": budget_exhausted_count,
+        "budget_exhausted_rate": budget_exhausted_count / evaluated_count,
         "explicit_reasoning_count": explicit_reasoning_count,
         "explicit_reasoning_rate": explicit_reasoning_count / evaluated_count,
         "reasoning_detection_methods": dict(sorted(reasoning_methods.items())),
@@ -361,6 +371,9 @@ def _run_model(
         "decoding": dict(prompt_config["decoding"]),
         "presence_penalty_semantics": "generated_tokens_only_v1",
         "seed": seed,
+        "sampling_seed_scope": runtime_config.get(
+            "sampling_seed_scope", "global_run_v1"
+        ),
         "gpu_name": device.name,
         "gpu_total_memory_bytes": int(device.total_memory),
         "gpu_compute_capability": list(torch.cuda.get_device_capability(0)),
@@ -394,7 +407,21 @@ def _claim_eligibility(prompt_config: Mapping[str, Any]) -> str:
         return "none; D013/D014/D017 final train-only compatibility gate"
     if allocation == (3584, 512):
         return "none; D013/D014 train-only compatibility gate"
+    if allocation in {(2048, 4096), (2048, 8192)}:
+        return (
+            "none; D023 exploratory train-only expanded-output "
+            "budget-sensitivity study"
+        )
     raise ValueError(f"unsupported native-thinking token allocation: {allocation}")
+
+
+def _generation_seed(*, base_seed: int, example_id: str, scope: str) -> int:
+    if scope == "global_run_v1":
+        return base_seed
+    if scope == "per_example_sha256_v1":
+        payload = f"d023:{base_seed}:{example_id}".encode("utf-8")
+        return int.from_bytes(hashlib.sha256(payload).digest()[:8], "big")
+    raise ValueError(f"unsupported sampling seed scope: {scope}")
 
 
 class _GenerationHeartbeat:

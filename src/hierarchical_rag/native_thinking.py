@@ -102,7 +102,7 @@ def detect_native_reasoning(generated_text: str) -> ReasoningDetection:
 
 
 def validate_native_thinking_protocol(config: Mapping[str, Any]) -> None:
-    """Reject any unrecorded change to the D013/D014 train-only gate."""
+    """Reject unrecorded changes to native-thinking train-only protocols."""
 
     experiment = config["experiment"]
     dataset = config["dataset"]
@@ -116,11 +116,19 @@ def validate_native_thinking_protocol(config: Mapping[str, Any]) -> None:
     if stage not in {
         "train_only_native_thinking_smoke",
         "train_only_native_thinking_final_gate",
+        "train_only_native_thinking_budget_sensitivity",
     }:
         raise ValueError("native-thinking runner is restricted to its train-only gates")
     is_final_gate = stage == "train_only_native_thinking_final_gate"
-    if is_final_gate != ("D017" in decision_ids):
-        raise ValueError("only the final 2048+2048 gate may cite D017")
+    is_budget_sensitivity = (
+        stage == "train_only_native_thinking_budget_sensitivity"
+    )
+    if is_final_gate and "D017" not in decision_ids:
+        raise ValueError("the final 2048+2048 gate must cite D017")
+    if not is_final_gate and not is_budget_sensitivity and "D017" in decision_ids:
+        raise ValueError("only D017 or D023 protocols may cite D017")
+    if is_budget_sensitivity and "D023" not in decision_ids:
+        raise ValueError("the expanded-output budget study must cite D023")
     if not {"D013", "D014"} <= decision_ids:
         raise ValueError("native-thinking configs must cite D013 and D014")
     if experiment["seeds"] != [0]:
@@ -143,6 +151,11 @@ def validate_native_thinking_protocol(config: Mapping[str, Any]) -> None:
     if model_id.startswith("Qwen/Qwen3.5-") and not {"D015", "D016"} <= decision_ids:
         raise ValueError("Qwen3.5 configs with corrected counts must cite D015/D016")
     expected = MODEL_PROTOCOLS[model_id]
+    if is_budget_sensitivity and model_id not in {
+        "LiquidAI/LFM2.5-1.2B-Thinking",
+        "Qwen/Qwen3.5-2B",
+    }:
+        raise ValueError("D023 is restricted to the two preregistered core models")
     for field in (
         "revision",
         "architecture",
@@ -180,15 +193,26 @@ def validate_native_thinking_protocol(config: Mapping[str, Any]) -> None:
         raise ValueError("target truncation differs from the shared contract")
     if prompt["chat_template_kwargs"] != expected["chat_template_kwargs"]:
         raise ValueError("chat-template thinking mode differs from D013")
-    expected_allocation = (2048, 2048) if is_final_gate else (3584, 512)
-    if (int(prompt["max_input_tokens"]), int(prompt["max_new_tokens"])) != (
-        expected_allocation
-    ):
-        label = "D017" if is_final_gate else "D014"
-        allocation = "+".join(str(value) for value in expected_allocation)
-        raise ValueError(f"{label} requires the shared {allocation} token allocation")
-    if int(prompt["total_reader_tokens"]) != 4096:
-        raise ValueError("D014 requires a 4096-token total reader ceiling")
+    allocation = (
+        int(prompt["max_input_tokens"]),
+        int(prompt["max_new_tokens"]),
+    )
+    if is_budget_sensitivity:
+        if allocation not in {(2048, 4096), (2048, 8192)}:
+            raise ValueError(
+                "D023 requires a 2048-token input and a 4096- or "
+                "8192-token output ceiling"
+            )
+    else:
+        expected_allocation = (2048, 2048) if is_final_gate else (3584, 512)
+        if allocation != expected_allocation:
+            label = "D017" if is_final_gate else "D014"
+            expected_text = "+".join(str(value) for value in expected_allocation)
+            raise ValueError(
+                f"{label} requires the shared {expected_text} token allocation"
+            )
+    if int(prompt["total_reader_tokens"]) != sum(allocation):
+        raise ValueError("total_reader_tokens must equal input plus output ceilings")
     if int(prompt["total_reader_tokens"]) > int(model["max_position_embeddings"]):
         raise ValueError("reader budget exceeds the pinned model context window")
     if prompt["decoding"] != expected["decoding"]:
@@ -208,6 +232,11 @@ def validate_native_thinking_protocol(config: Mapping[str, Any]) -> None:
         raise ValueError("native samplers are stochastic even when their seed is fixed")
     if int(runtime["fixed_sampling_seed"]) != int(experiment["seeds"][0]):
         raise ValueError("runtime sampling seed must match the preregistered seed")
+    expected_seed_scope = (
+        "per_example_sha256_v1" if is_budget_sensitivity else "global_run_v1"
+    )
+    if runtime.get("sampling_seed_scope", "global_run_v1") != expected_seed_scope:
+        raise ValueError(f"seed scope must be {expected_seed_scope}")
 
 
 def _strip_control_tokens(value: str) -> str:

@@ -1,0 +1,102 @@
+schema_version: 1
+
+experiment:
+  id: p1-qwen3.5-2b-thinking-gold-train-budget-4096-v1
+  hypothesis_id: P1
+  decision_ids: [D001, D002, D008, D009, D013, D014, D015, D016, D017, D018, D019, D020, D021, D022, D023]
+  owner: alexander_dikov
+  stage: train_only_native_thinking_budget_sensitivity
+  series_id: d023-expanded-output-v1
+  exact_command: PYTHONPATH=src python -m hierarchical_rag.run_native_thinking_smoke --config experiments/configs/p1-qwen3.5-2b-thinking-gold-train-budget-4096-v1.yaml
+  seeds: [0]
+  stopping_rule: Execute this mandatory cell of the fixed four-run D023 matrix once on all 16 targets; preserve every output and do not change the cap, prompt, parser, sampler, seed, examples, or model after observing results.
+  exclusions: []
+  claim_scope: Exploratory train-only expanded-output feasibility evidence under D023; no H1, validation, primary-panel, model-selection-by-quality, or cross-environment efficiency claim.
+
+dataset:
+  name: hotpot_qa
+  config: distractor
+  split: train
+  source_revision: 1908d6afbbead072334abe2965f91bd2709910ab
+  source_file: data/processed/hotpotqa/train-distractor-s42-n18.json
+  source_sha256: 2fc88b5a1c96f784ddc0486459b10c4c283079eb4a31df2e73dd2ae0800374e7
+  manifest_file: data/processed/hotpotqa/train-distractor-s42-n18.manifest.json
+  manifest_sha256: 898ff23801daaeb3577f4b0d088ab20286a66404d8aff2a252242428cb7d009e
+  evidence: gold_supporting_paragraphs_in_original_context_order
+  selection:
+    method: deterministic_sha256
+    seed: 42
+    size: 18
+    demonstration_count: 2
+    evaluated_count: 16
+    example_ids: [5a8109535542995ce29dcba2, 5ae062d95542993d6555eb36, 5a7302895542992359bc31fc, 5a9095bf55429933b8a20572, 5a87b9955542996e4f3088ef, 5adee1515542992d7e9f9263, 5ab2fc3355429976abd1bbf0, 5ae109f755429920d523429e, 5a7a892a55429941d65f268d, 5a8884f25542997e5c09a5ec, 5ab3026c55429976abd1bc1c, 5a8d54b055429941ae14dfa7, 5adcc27c5542994ed6169bf1, 5ab2b784554299545a2cfa1f, 5ab6d9295542995eadef00c4, 5a7ebff35542994959419a6e, 5ab280b95542997061209642, 5a79d0945542994f819ef0b9]
+  leakage_note: D023 was motivated by preserved D017 exhaustion counts; validation remains unopened and the complete cap matrix was frozen before these outputs.
+
+model:
+  id: Qwen/Qwen3.5-2B
+  revision: 15852e8c16360a2fea060d615a32b45270f8a8fc
+  architecture: qwen3_5
+  backend: multimodal_lm_processor_text_only
+  role: contemporary_cot_reference
+  parameter_count_expected: 2213241664
+  checkpoint_tensor_element_count: 2274069824
+  mtp_checkpoint_tensor_element_count: 60828160
+  parameter_ratio_to_hrm: 1.8711959131
+  max_position_embeddings: 262144
+  dtype: bfloat16
+  torch_version: 2.5.1+cu121
+  transformers_version: 5.9.0
+  license: Apache-2.0
+  gated: false
+  frozen: true
+
+prompt:
+  template: checkpoint_native_chat_template
+  chat_template_kwargs: {enable_thinking: true}
+  style: few_shot_supporting_fact_cot_final_answer
+  demonstration_rationale: supporting_fact_sentences
+  demonstration_rationale_order: original_context_then_sentence
+  demonstration_rationale_transform: verbatim_sentence_join
+  final_answer_format: "Answer: <shortest answer>"
+  demonstration_count: 2
+  demonstration_ids: [5a8109535542995ce29dcba2, 5ae062d95542993d6555eb36]
+  max_input_tokens: 2048
+  max_new_tokens: 4096
+  total_reader_tokens: 6144
+  target_truncation: sentence_boundary_from_end_only
+  decoding:
+    do_sample: true
+    temperature: 1.0
+    top_p: 0.95
+    top_k: 20
+    min_p: 0.0
+    presence_penalty: 1.5
+    repetition_penalty: 1.0
+
+reader:
+  type: frozen_native_thinking_cot
+  answer_extraction: last_declared_answer_line_v1
+  reasoning_detection: native_think_or_pre_answer_v1
+  presence_penalty_semantics: generated_tokens_only_v1
+  semantic_postprocessing: forbidden
+
+evaluation:
+  primary_metric: budget_exhausted_rate
+  feasibility_conditions: [valid_extraction_rate_equals_1, explicit_reasoning_rate_equals_1, budget_exhausted_count_equals_0, truncated_example_count_equals_0]
+  secondary_metrics: [answer_exact_match, answer_f1, latency_seconds, throughput_examples_per_second, generated_tokens, peak_gpu_memory_bytes]
+  statistics:
+    status: not_applicable
+    reason: Train-only n=16 budget-sensitivity cell with no system comparison or confirmatory claim.
+
+runtime:
+  device: cuda
+  deterministic_decoding: false
+  fixed_sampling_seed: 0
+  sampling_seed_scope: per_example_sha256_v1
+  tf32: false
+  dependency_lock_file: environments/hrm-text-gpu-py310.lock
+  dependency_lock_sha256: a4439c71efa6c4ce0354edbc732a0227d68106a62db5140917ea74d05a0dc647
+  execution_environment: yandex_datasphere_notebook_a100_d023
+  container_image: not_applicable_datasphere_notebook_d023
+  expected_hardware: Yandex DataSphere g2.1, one NVIDIA A100 80GB
+  output_dir: results/runs/p1-qwen3.5-2b-thinking-gold-train-budget-4096-v1
