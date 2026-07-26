@@ -68,7 +68,7 @@ The historical script now rejects all three consumed attempts. Its source, confi
 
 D023 is a separate train-only budget-sensitivity study and does not reopen D017 or change primary E2. Its fixed matrix contains LFM2.5-1.2B-Thinking and Qwen3.5-2B at 4,096 and 8,192 generated-token ceilings, with the same 2,048-token input ceiling and all other reader fields frozen. The series runner installs or reuses the pinned Notebook environment once, executes all four cells sequentially, emits example-level heartbeat progress, preserves failed cells, and creates both per-run and combined archives.
 
-Create the upload archive only from a clean committed worktree. The builder checks the embedded source revision, LF line endings, and the dependency-lock checksum recorded by all four configs:
+Create the upload archive only from a clean committed worktree. The builder checks the embedded source revision, LF line endings, dependency lock, and the two ignored prepared-data files against the checksums recorded by all four configs:
 
 ```powershell
 python cluster/datasphere/prepare_d023_notebook_bundle.py
