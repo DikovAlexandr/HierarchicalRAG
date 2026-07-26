@@ -146,7 +146,8 @@ def audit_artifact(
     provenance: dict[str, Any] = {
         "original_source_revision": manifest["git_commit"],
         "audit_source_revision": _git_revision(),
-        "source_config": str(source_config),
+        "raw_run_dir": _display_path(run_dir),
+        "source_config": _display_path(source_config),
         "source_config_sha256": sha256_file(source_config),
         "resolved_config_sha256": sha256_file(resolved_config_path),
         "manifest_sha256": sha256_file(run_dir / "manifest.json"),
@@ -155,7 +156,7 @@ def audit_artifact(
         "terminal_log_sha256": sha256_file(terminal_log),
     }
     if archive is not None:
-        provenance["archive"] = str(archive)
+        provenance["archive"] = _display_path(archive)
         provenance["archive_sha256"] = sha256_file(archive)
 
     return {
@@ -312,6 +313,14 @@ def _git_revision() -> str:
         text=True,
         encoding="utf-8",
     ).stdout.strip()
+
+
+def _display_path(path: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return resolved.relative_to(Path.cwd().resolve()).as_posix()
+    except ValueError:
+        return resolved.as_posix()
 
 
 if __name__ == "__main__":
