@@ -77,7 +77,7 @@ python cluster/datasphere/prepare_d023_notebook_bundle.py
 Upload the resulting `d023-notebook-bundle-<revision>.tar.gz` to `/home/jupyter/project`, select the A100 VM, and run one Python Notebook cell. Replace the bundle name with the exact uploaded filename:
 
 ```python
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import subprocess
 import tarfile
 
@@ -87,9 +87,10 @@ bundle = project_dir / "d023-notebook-bundle-<revision>.tar.gz"
 with tarfile.open(bundle, "r:gz") as archive:
     members = archive.getmembers()
     if not members or any(
-        member.name.startswith("/")
-        or ".." in Path(member.name).parts
-        or not member.name.startswith("HierarchicalRAG/")
+        (path := PurePosixPath(member.name)).is_absolute()
+        or ".." in path.parts
+        or not path.parts
+        or path.parts[0] != "HierarchicalRAG"
         for member in members
     ):
         raise RuntimeError("Unsafe or unexpected bundle layout")
