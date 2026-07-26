@@ -3,7 +3,7 @@ schema_version: 1
 experiment:
   id: p1-lfm2.5-thinking-gold-train-budget-4096-v1
   hypothesis_id: P1
-  decision_ids: [D001, D002, D008, D009, D013, D014, D017, D018, D019, D020, D021, D022, D023, D024]
+  decision_ids: [D001, D002, D008, D009, D013, D014, D017, D018, D019, D020, D021, D022, D023, D024, D025]
   owner: alexander_dikov
   stage: train_only_native_thinking_budget_sensitivity
   series_id: d023-expanded-output-v1

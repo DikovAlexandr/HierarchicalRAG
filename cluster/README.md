@@ -68,14 +68,39 @@ The historical script now rejects all three consumed attempts. Its source, confi
 
 D023 is a separate train-only budget-sensitivity study and does not reopen D017 or change primary E2. Its fixed matrix contains LFM2.5-1.2B-Thinking and Qwen3.5-2B at 4,096 and 8,192 generated-token ceilings, with the same 2,048-token input ceiling and all other reader fields frozen. The series runner installs or reuses the pinned Notebook environment once, executes all four cells sequentially, emits example-level heartbeat progress, preserves failed cells, and creates both per-run and combined archives.
 
-Upload the prepared `d023-notebook-bundle-<revision>.tar.gz` to `/home/jupyter/project`, select the A100 VM, and run one Notebook cell:
+Create the upload archive only from a clean committed worktree. The builder checks the embedded source revision, LF line endings, and the dependency-lock checksum recorded by all four configs:
 
-```bash
-set -o pipefail
-cd /home/jupyter/project
-tar -xzf d023-notebook-bundle-<revision>.tar.gz
-cd HierarchicalRAG
-bash cluster/datasphere/run-d023-notebook.sh all
+```powershell
+python cluster/datasphere/prepare_d023_notebook_bundle.py
+```
+
+Upload the resulting `d023-notebook-bundle-<revision>.tar.gz` to `/home/jupyter/project`, select the A100 VM, and run one Python Notebook cell. Replace the bundle name with the exact uploaded filename:
+
+```python
+from pathlib import Path
+import subprocess
+import tarfile
+
+project_dir = Path("/home/jupyter/project")
+bundle = project_dir / "d023-notebook-bundle-<revision>.tar.gz"
+
+with tarfile.open(bundle, "r:gz") as archive:
+    members = archive.getmembers()
+    if not members or any(
+        member.name.startswith("/")
+        or ".." in Path(member.name).parts
+        or not member.name.startswith("HierarchicalRAG/")
+        for member in members
+    ):
+        raise RuntimeError("Unsafe or unexpected bundle layout")
+    archive.extractall(project_dir)
+
+completed = subprocess.run(
+    ["bash", "cluster/datasphere/run-d023-notebook.sh", "all"],
+    cwd=project_dir / "HierarchicalRAG",
+    check=False,
+)
+print(f"runner_exit_status={completed.returncode}")
 ```
 
 The command prints `series_archive=...` when it finishes. Download that combined archive even if `series_exit_status` is nonzero; it contains the terminal logs and every available immutable run artifact. A single preregistered cell can be executed only for technical recovery before any model output exists:

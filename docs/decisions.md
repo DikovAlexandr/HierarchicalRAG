@@ -243,6 +243,16 @@ Required fields: ID, date, owner, status, decision, alternatives, evidence, expe
 - **Impact:** the failed bootstrap is a preserved infrastructure failure, not a consumed D023 experiment cell. A replacement bundle may execute the unchanged four-cell series. Requiring an executable CPython 3.10 probe prevents a path from being accepted merely because it exists and keeps wheel selection compatible with the pinned Notebook lock.
 - **Revisit when:** DataSphere changes its Notebook Python ABI or no runnable CPython 3.10 interpreter is available. Any ABI or dependency-lock change must be recorded before retrying.
 
+### D025 — Preserve the CRLF-altered D023 bundle failure and enforce LF-stable bundles
+
+- **Date / owner:** 2026-07-26 / alexander_dikov.
+- **Status:** accepted after the complete four-cell series stopped before model loading.
+- **Decision:** preserve the failed D023 series as an infrastructure failure and rebuild it from a new clean commit without changing any experimental field. Enforce LF for repository text files through `.gitattributes`; build the Notebook archive with the versioned D023 bundle tool; and reject a bundle unless its embedded dependency lock matches every D023 config checksum and its text members contain no CRLF line endings.
+- **Alternatives:** change the four configs to expect the platform-mutated CRLF lock; edit the lock inside DataSphere; disable checksum verification; count the four immediate failures as model attempts.
+- **Evidence:** the bundle from source revision `9ecb8cd7702d268618f778101fef5dd0ef83d9ae` converted 114 text files from LF to CRLF during Windows export. The embedded `environments/hrm-text-gpu-py310.lock` therefore had SHA256 `ce838ce4c86244490511831002720824b433970273b94fa6173c9a3ef480233c`, while the committed immutable lock and all four frozen configs correctly recorded `a4439c71efa6c4ce0354edbc732a0227d68106a62db5140917ea74d05a0dc647`. Every cell stopped at the initial lock verification before model loading, output-directory creation, or generation; the dependency installation itself completed successfully.
+- **Impact:** no D023 model attempt was consumed and no model output or answer metric was observed. The model revisions, train examples, prompt, parser, sampling, per-example seeds, BF16 precision, 4,096/8,192 output ceilings, stopping rule, and four-cell order remain unchanged. The replacement bundle cites D025 and can reuse the successfully installed DataSphere package directory after validating it.
+- **Revisit when:** a prepared bundle fails byte-level validation, DataSphere mutates another tracked input after extraction, or archive construction moves to another operating system or toolchain.
+
 ## New decision template
 
 ### DXXX — Short title
