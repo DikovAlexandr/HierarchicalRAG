@@ -7,6 +7,7 @@ import hashlib
 import platform
 import subprocess
 import sys
+import threading
 import time
 from collections import Counter
 from dataclasses import asdict
@@ -77,6 +78,10 @@ def _run_model(
     torch.backends.cudnn.benchmark = False
     backend = model_config["backend"]
     load_started = time.perf_counter()
+    print(
+        f"stage=frontend_load_start model={model_config['id']}",
+        flush=True,
+    )
     if backend == "causal_lm_tokenizer":
         frontend = AutoTokenizer.from_pretrained(
             model_config["id"],
@@ -94,6 +99,10 @@ def _run_model(
     else:
         raise ValueError(f"unsupported native-thinking backend: {backend}")
 
+    print(
+        f"stage=model_weights_load_start model={model_config['id']}",
+        flush=True,
+    )
     model = model_loader.from_pretrained(
         model_config["id"],
         revision=model_config["revision"],
@@ -117,6 +126,12 @@ def _run_model(
     if max_position_embeddings != int(model_config["max_position_embeddings"]):
         raise RuntimeError("model context length differs from the config")
     language_model_parameter_count = _language_model_parameter_count(model)
+    print(
+        "stage=model_ready "
+        f"model={model_config['id']} load_seconds={load_seconds:.3f} "
+        f"parameters={parameter_count}",
+        flush=True,
+    )
 
     def render_chat(messages: Sequence[Mapping[str, str]]) -> str:
         return frontend.apply_chat_template(
@@ -137,12 +152,14 @@ def _run_model(
     peak_reserved = 0
     reasoning_methods: Counter[str] = Counter()
     started = time.perf_counter()
+    target_count = len(targets)
+    print(f"stage=evaluation_start examples={target_count}", flush=True)
     with (run_dir / "predictions.jsonl").open(
         "w", encoding="utf-8", newline="\n"
     ) as prediction_stream, (run_dir / "retrieval.jsonl").open(
         "w", encoding="utf-8", newline="\n"
     ) as retrieval_stream:
-        for target in targets:
+        for target_index, target in enumerate(targets, start=1):
             evidence = gold_paragraphs(target)
             built = build_cot_chat_prompt(
                 demonstrations,
@@ -171,10 +188,25 @@ def _run_model(
                 torch_module=torch,
                 transformers_module=transformers,
             )
+            print(
+                _example_progress(
+                    current=target_index - 1,
+                    total=target_count,
+                    example_id=target.identifier,
+                    status="generation_start",
+                    detail=f"input_tokens={actual_input_tokens}",
+                ),
+                flush=True,
+            )
             torch.cuda.reset_peak_memory_stats()
             generation_started = time.perf_counter()
-            with torch.inference_mode():
-                output = model.generate(**inputs, **generation_kwargs)
+            with _GenerationHeartbeat(
+                example_index=target_index,
+                example_count=target_count,
+                example_id=target.identifier,
+            ):
+                with torch.inference_mode():
+                    output = model.generate(**inputs, **generation_kwargs)
             torch.cuda.synchronize()
             latency = time.perf_counter() - generation_started
             generated_ids = output[0, actual_input_tokens:]
@@ -201,6 +233,21 @@ def _run_model(
             peak_allocated = max(peak_allocated, int(torch.cuda.max_memory_allocated()))
             peak_reserved = max(peak_reserved, int(torch.cuda.max_memory_reserved()))
             score = answer_score(prediction, target.answer or "")
+            print(
+                _example_progress(
+                    current=target_index,
+                    total=target_count,
+                    example_id=target.identifier,
+                    status="complete",
+                    detail=(
+                        f"generated_tokens={generated_tokens} "
+                        f"extraction={extraction.status} "
+                        f"exhausted={generated_tokens >= int(prompt_config['max_new_tokens'])} "
+                        f"latency_seconds={latency:.3f}"
+                    ),
+                ),
+                flush=True,
+            )
 
             prediction_stream.write(
                 _json_line(
@@ -323,6 +370,68 @@ def _run_model(
         "gpu_compute_capability": list(torch.cuda.get_device_capability(0)),
     }
     return metrics, environment
+
+
+def _example_progress(
+    *,
+    current: int,
+    total: int,
+    example_id: str,
+    status: str,
+    detail: str,
+    width: int = 24,
+) -> str:
+    completed = min(width, (width * current) // total)
+    bar = "#" * completed + "-" * (width - completed)
+    return (
+        f"progress=[{bar}] examples={current}/{total} "
+        f"example_id={example_id} status={status} {detail}"
+    )
+
+
+class _GenerationHeartbeat:
+    """Report liveness without synchronizing or otherwise touching the GPU."""
+
+    def __init__(
+        self,
+        *,
+        example_index: int,
+        example_count: int,
+        example_id: str,
+        interval_seconds: float = 15.0,
+    ) -> None:
+        self.example_index = example_index
+        self.example_count = example_count
+        self.example_id = example_id
+        self.interval_seconds = interval_seconds
+        self._stop = threading.Event()
+        self._started = 0.0
+        self._thread: threading.Thread | None = None
+
+    def __enter__(self) -> "_GenerationHeartbeat":
+        self._started = time.perf_counter()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=self.interval_seconds + 1.0)
+
+    def _run(self) -> None:
+        while not self._stop.wait(self.interval_seconds):
+            elapsed = time.perf_counter() - self._started
+            print(
+                _example_progress(
+                    current=self.example_index - 1,
+                    total=self.example_count,
+                    example_id=self.example_id,
+                    status="generation_running",
+                    detail=f"elapsed_seconds={elapsed:.1f}",
+                ),
+                flush=True,
+            )
 
 
 def _generation_kwargs(

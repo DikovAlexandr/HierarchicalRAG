@@ -60,13 +60,13 @@ datasphere --profile <profile> project job execute \
 
 The job definition uploads only declared code, configuration, lock, and ignored processed inputs, then downloads all nine required run records. Preserve failed jobs and their logs; never rerun or alter the prompt because an observed answer is inconvenient.
 
-The D018 Notebook fallback is restricted to D017 pre-container Job failures. Use only a prepared clean-source bundle containing `SOURCE_REVISION.txt`, then run LFM2.5 first:
+The D018 Notebook fallback is restricted to D017 pre-container Job failures. It uses the version-equivalent, hash-pinned Python 3.10 lock recorded in D019. Use only a prepared clean-source bundle containing `SOURCE_REVISION.txt`, then run LFM2.5 first:
 
 ```bash
 bash cluster/datasphere/run-d017-notebook.sh
 ```
 
-The script rejects unsupported configs, a non-A100 GPU, dependency-version drift, and non-empty run directories. It always packages the terminal log and any standard run artifacts for download. Notebook efficiency measurements are not directly comparable with pinned-container Job measurements.
+The script rejects unsupported configs, a non-A100 GPU, dependency-version drift, concurrent execution, and non-empty run directories. It reports bootstrap/model stages, per-example progress, and a 15-second generation heartbeat; it always packages the terminal log and any standard run artifacts for download. Notebook efficiency measurements are not directly comparable with pinned-container Job measurements.
 
 ## Fullwiki storage
 

@@ -9,6 +9,9 @@ from hierarchical_rag.native_thinking import (
     detect_native_reasoning,
     validate_native_thinking_protocol,
 )
+from hierarchical_rag.run_native_thinking_smoke import (
+    _example_progress,
+)
 
 
 def _config(model_id: str) -> dict:
@@ -163,3 +166,17 @@ def test_reasoning_detection_supports_untagged_cot():
 
     assert detected.present is True
     assert detected.method == "pre_answer_text"
+
+
+def test_example_progress_reports_bounded_bar_and_identity():
+    message = _example_progress(
+        current=4,
+        total=16,
+        example_id="example-04",
+        status="complete",
+        detail="generated_tokens=42",
+    )
+
+    assert "[######------------------]" in message
+    assert "examples=4/16" in message
+    assert "example_id=example-04" in message

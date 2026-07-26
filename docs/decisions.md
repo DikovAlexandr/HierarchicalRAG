@@ -183,6 +183,16 @@ Required fields: ID, date, owner, status, decision, alternatives, evidence, expe
 - **Impact:** a provenance-complete Notebook run may decide only the train-only D017 compatibility gate. It does not authorize validation use, H1 claims, output-dependent tuning, or cross-environment efficiency comparisons. The four allocation failures remain infrastructure evidence and do not consume D017's one model attempt.
 - **Revisit when:** a clean `g2.1` Job can start, any required version/checksum/hardware check fails in Notebook, or a Notebook result would be used beyond the D017 interface decision.
 
+### D019 — Add the verified CPython 3.10 wheel hash in a separate Notebook lock
+
+- **Date / owner:** 2026-07-26 / alexander_dikov.
+- **Status:** accepted after the preserved Notebook dependency failure and before any D017 model output.
+- **Decision:** keep the historical Python 3.11 `environments/hrm-text-gpu.lock` immutable and create `environments/hrm-text-gpu-py310.lock` for the DataSphere Notebook fallback. Keep every package version unchanged and add only the official PyPI SHA256 `98c6ac18480fcdb33f35439183f1d2e79760ab41930309c6d951cb1f8e46694c` for the CPython 3.10 Linux wheel of `regex==2026.7.19`, alongside the already pinned CPython 3.11 wheel hash. Bind new Notebook-only v3/v5 configs to the new lock and its checksum.
+- **Alternatives:** disable `--require-hashes`; change the `regex` version; overwrite the historical lock and invalidate its recorded checksum; install unavailable system packages to force a Python 3.11 virtual environment.
+- **Evidence:** the preserved Notebook artifact `p1-lfm2.5-thinking-gold-train-smoke-v2-artifacts-20260726T110510Z.tar.gz` stopped during dependency installation because DataSphere selected the CPython 3.10 wheel whose downloaded SHA256 was `98c6ac18480fcdb33f35439183f1d2e79760ab41930309c6d951cb1f8e46694c`, while the original lock allowed only the CPython 3.11 wheel hash. Official PyPI metadata for the pinned release independently reports that exact filename and digest: https://pypi.org/pypi/regex/2026.7.19/json. A complete cross-platform `pip download` verification then resolved all 17 pinned dependencies for CPython 3.10/Linux with `--require-hashes`. The runner never reached model loading or generation.
+- **Impact:** package versions, model revisions, data, prompt, parser, sampler, seed, and 2,048+2,048 budget remain unchanged. Historical Job and Notebook configs retain their original lock provenance; only the new D018 Notebook configs use the CPython 3.10-compatible lock. This technical failure does not consume a D017 model attempt or support a quality claim.
+- **Revisit when:** DataSphere changes Python ABI, another wheel fails hash verification, or the run moves back to the pinned Python 3.11 Job environment. Any additional platform hash must first be verified against official package metadata and recorded before use.
+
 ## New decision template
 
 ### DXXX — Short title

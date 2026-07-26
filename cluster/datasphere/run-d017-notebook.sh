@@ -5,16 +5,16 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT}"
 
-CONFIG="${1:-experiments/configs/p1-lfm2.5-thinking-gold-train-smoke-v2.yaml}"
+CONFIG="${1:-experiments/configs/p1-lfm2.5-thinking-gold-train-smoke-v3.yaml}"
 case "${CONFIG}" in
-  experiments/configs/p1-lfm2.5-thinking-gold-train-smoke-v2.yaml)
-    EXPERIMENT_ID="p1-lfm2.5-thinking-gold-train-smoke-v2"
+  experiments/configs/p1-lfm2.5-thinking-gold-train-smoke-v3.yaml)
+    EXPERIMENT_ID="p1-lfm2.5-thinking-gold-train-smoke-v3"
     ;;
-  experiments/configs/p1-qwen3.5-0.8b-thinking-gold-train-smoke-v4.yaml)
-    EXPERIMENT_ID="p1-qwen3.5-0.8b-thinking-gold-train-smoke-v4"
+  experiments/configs/p1-qwen3.5-0.8b-thinking-gold-train-smoke-v5.yaml)
+    EXPERIMENT_ID="p1-qwen3.5-0.8b-thinking-gold-train-smoke-v5"
     ;;
-  experiments/configs/p1-qwen3.5-2b-thinking-gold-train-smoke-v4.yaml)
-    EXPERIMENT_ID="p1-qwen3.5-2b-thinking-gold-train-smoke-v4"
+  experiments/configs/p1-qwen3.5-2b-thinking-gold-train-smoke-v5.yaml)
+    EXPERIMENT_ID="p1-qwen3.5-2b-thinking-gold-train-smoke-v5"
     ;;
   *)
     echo "Unsupported D017 config: ${CONFIG}" >&2
@@ -45,6 +45,13 @@ if [[ -d "${RUN_DIR}" ]] && find "${RUN_DIR}" -mindepth 1 -print -quit | grep -q
   exit 2
 fi
 
+LOCK_DIR="${ROOT}/.d017-run-lock"
+if ! mkdir "${LOCK_DIR}" 2>/dev/null; then
+  echo "Another D017 runner appears to be active: ${LOCK_DIR}" >&2
+  exit 2
+fi
+trap 'rmdir "${LOCK_DIR}" 2>/dev/null || true' EXIT
+
 set +e
 (
   set -e
@@ -66,24 +73,53 @@ set +e
     echo "No Python interpreter found; set D017_BOOTSTRAP_PYTHON explicitly" >&2
     exit 127
   fi
+  echo "stage=bootstrap_python_ready executable=${BOOTSTRAP_PYTHON}"
 
   PACKAGE_DIR="${ROOT}/.d017-python-packages"
   PACKAGE_MARKER="${PACKAGE_DIR}/.install-complete"
-  if [[ ! -f "${PACKAGE_MARKER}" ]]; then
-    if [[ -e "${PACKAGE_DIR}" ]]; then
+  if [[ -d "${PACKAGE_DIR}" && ! -f "${PACKAGE_MARKER}" ]]; then
+    if PYTHONPATH="${PACKAGE_DIR}" "${BOOTSTRAP_PYTHON}" -c \
+      'import torch, transformers; assert torch.__version__ == "2.5.1+cu121"; assert transformers.__version__ == "5.9.0"' \
+      >/dev/null 2>&1
+    then
+      touch "${PACKAGE_MARKER}"
+    else
       echo "Incomplete package directory exists: ${PACKAGE_DIR}" >&2
       exit 2
     fi
-    PACKAGE_TMP="${PACKAGE_DIR}.tmp-${ATTEMPT_UTC}"
-    mkdir -p "${PACKAGE_TMP}"
+  fi
+  if [[ ! -f "${PACKAGE_MARKER}" ]]; then
+    PACKAGE_TMP=""
+    for candidate in "${PACKAGE_DIR}".tmp-*; do
+      if [[ -d "${candidate}" ]] && { [[ -z "${PACKAGE_TMP}" ]] || [[ "${candidate}" -nt "${PACKAGE_TMP}" ]]; }; then
+        PACKAGE_TMP="${candidate}"
+      fi
+    done
+    if [[ -z "${PACKAGE_TMP}" ]]; then
+      PACKAGE_TMP="${PACKAGE_DIR}.tmp-${ATTEMPT_UTC}"
+      mkdir -p "${PACKAGE_TMP}"
+    fi
 
+    if PYTHONPATH="${PACKAGE_TMP}" "${BOOTSTRAP_PYTHON}" -c \
+      'import torch; assert torch.__version__ == "2.5.1+cu121"' \
+      >/dev/null 2>&1
+    then
+      echo "stage=torch_ready source=reused_partial_install"
+    else
+      echo "stage=torch_install_start version=2.5.1+cu121"
+      "${BOOTSTRAP_PYTHON}" -m pip install --disable-pip-version-check --no-cache-dir \
+        --target "${PACKAGE_TMP}" --no-warn-conflicts \
+        --index-url https://download.pytorch.org/whl/cu121 \
+        "torch==2.5.1"
+      echo "stage=torch_install_complete"
+    fi
+
+    echo "stage=locked_dependencies_install_start"
     "${BOOTSTRAP_PYTHON}" -m pip install --disable-pip-version-check --no-cache-dir \
-      --target "${PACKAGE_TMP}" \
-      --index-url https://download.pytorch.org/whl/cu121 \
-      "torch==2.5.1"
-    "${BOOTSTRAP_PYTHON}" -m pip install --disable-pip-version-check --no-cache-dir \
-      --target "${PACKAGE_TMP}" --no-deps --progress-bar off --require-hashes \
-      -r environments/hrm-text-gpu.lock
+      --target "${PACKAGE_TMP}" --upgrade --no-warn-conflicts --no-deps \
+      --progress-bar on --require-hashes \
+      -r environments/hrm-text-gpu-py310.lock
+    echo "stage=locked_dependencies_install_complete"
 
     PYTHONPATH="${PACKAGE_TMP}" "${BOOTSTRAP_PYTHON}" - <<'PY'
 import torch
@@ -97,6 +133,9 @@ PY
 
     mv "${PACKAGE_TMP}" "${PACKAGE_DIR}"
     touch "${PACKAGE_MARKER}"
+    echo "stage=package_environment_published path=${PACKAGE_DIR}"
+  else
+    echo "stage=package_environment_ready source=existing_complete_install"
   fi
 
   PYTHONPATH="${PACKAGE_DIR}" "${BOOTSTRAP_PYTHON}" - <<'PY'
@@ -119,9 +158,11 @@ PY
   export PYTHONHASHSEED=0
   export TOKENIZERS_PARALLELISM=false
   export HF_HUB_DISABLE_TELEMETRY=1
+  echo "stage=model_runner_start experiment_id=${EXPERIMENT_ID}"
   PYTHONPATH="${PACKAGE_DIR}:src" "${BOOTSTRAP_PYTHON}" \
     -m hierarchical_rag.run_native_thinking_smoke \
     --config "${CONFIG}"
+  echo "stage=model_runner_complete experiment_id=${EXPERIMENT_ID}"
 ) 2>&1 | tee "${LOG_FILE}"
 STATUS=${PIPESTATUS[0]}
 set -e
