@@ -21,7 +21,8 @@ case "${CONFIG}" in
     exit 2
     ;;
   experiments/configs/p1-qwen3.5-2b-thinking-gold-train-smoke-v5.yaml)
-    EXPERIMENT_ID="p1-qwen3.5-2b-thinking-gold-train-smoke-v5"
+    echo "Refusing to repeat the completed Qwen3.5-2B D017 attempt (D022)" >&2
+    exit 2
     ;;
   *)
     echo "Unsupported D017 config: ${CONFIG}" >&2

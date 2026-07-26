@@ -60,14 +60,9 @@ datasphere --profile <profile> project job execute \
 
 The job definition uploads only declared code, configuration, lock, and ignored processed inputs, then downloads all nine required run records. Preserve failed jobs and their logs; never rerun or alter the prompt because an observed answer is inconvenient.
 
-The D018 Notebook fallback is restricted to D017 pre-container Job failures. It uses the version-equivalent, hash-pinned Python 3.10 lock recorded in D019. D020 and D021 preserve the completed failed LFM2.5 and Qwen3.5-0.8B gates and forbid repeating them. Use only a prepared clean-source bundle containing `SOURCE_REVISION.txt`; after reviewing both failures, run Qwen3.5-2B once:
+The D018 Notebook fallback was restricted to D017 pre-container Job failures. D020–D022 preserve the completed failed LFM2.5, Qwen3.5-0.8B, and Qwen3.5-2B gates and forbid repeating them. D017 is closed; no further Notebook runner command is authorized until a mentor-approved baseline or resource-contract decision is recorded.
 
-```bash
-bash cluster/datasphere/run-d017-notebook.sh \
-  experiments/configs/p1-qwen3.5-2b-thinking-gold-train-smoke-v5.yaml
-```
-
-The script rejects the consumed LFM2.5 and Qwen3.5-0.8B attempts, unsupported configs, a non-A100 GPU, dependency-version drift, concurrent execution, and non-empty run directories. It reports bootstrap/model stages, per-example progress, and a 15-second generation heartbeat; it always packages the terminal log and any standard run artifacts for download. Notebook efficiency measurements are not directly comparable with pinned-container Job measurements.
+The historical script now rejects all three consumed attempts. Its source, configs, terminal logs, raw artifacts, and reviewed audits remain preserved for reproducibility. Notebook efficiency measurements are not directly comparable with pinned-container Job measurements.
 
 ## Fullwiki storage
 

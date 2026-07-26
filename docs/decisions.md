@@ -213,6 +213,16 @@ Required fields: ID, date, owner, status, decision, alternatives, evidence, expe
 - **Impact:** Qwen3.5-0.8B is ineligible for the primary D017 resource-matched E2 comparison. Its complete runtime record remains available: 999.582 seconds evaluation time, 62.461 seconds mean latency, 0.0160 examples/second, and 1,916,718,592 bytes peak allocated GPU memory on one A100-SXM4-80GB. Qwen3.5-2B remains the final unopened D017 model attempt and may proceed once in the same sequential Notebook fallback.
 - **Revisit when:** the mentor changes the common 4,096-token contract or authorizes a distinct preregistered non-thinking/control experiment; do not revisit based on these observed answers.
 
+### D022 — Close D017 after Qwen3.5-2B also fails the final interface gate
+
+- **Date / owner:** 2026-07-26 / alexander_dikov.
+- **Status:** accepted after the complete immutable Notebook artifact was independently audited.
+- **Decision:** count `p1-qwen3.5-2b-thinking-gold-train-smoke-v5` as Qwen3.5-2B's single D017 attempt, mark its interface gate as failed, and do not rerun or tune it. Close D017 with none of the three D013 native-thinking candidates eligible for the primary resource-matched E2 panel. Do not select a replacement model or open validation automatically; first obtain mentor agreement on whether E2 should use the preserved Qwen2.5 instruct control or adopt a newly preregistered baseline/resource contract.
+- **Alternatives:** admit Qwen3.5-2B because its exploratory answer quality is high; ignore the six exhausted generations; rerun with another seed; increase only its output budget; change the parser or sampler after seeing outputs; silently fall back to Qwen2.5; search repeatedly for another model until one passes.
+- **Evidence:** artifact SHA256 `ef08af4f2d746b50ca4beab32a4e33758fbc0b0f96a4036775686287aa22f4c4` resolves to source revision `941d1af128db78f2f211b3c2427640057724d055` and manifest SHA256 `2ec1e37c81f2bcde960fbb95681df1382244f090f385ced9b0961c35ea5ca730`. The versioned complete-run audit verified all provenance, raw-record, parser, scoring, aggregate, environment, and runtime fields. Qwen3.5-2B produced reasoning on 16/16 targets, 15/16 parseable final answers, zero input truncations, and six 2,048-token exhaustions; therefore `interface_gate_passed=false`. Exploratory train-only EM/F1 are 0.8125/0.8333 and cannot override the preregistered feasibility criterion or support H1. The reviewed report is `results/reviews/p1-qwen3.5-2b-thinking-gold-train-smoke-v5.audit.json`.
+- **Impact:** D017 GPU work is complete and no further native-thinking gate run is authorized. The three negative feasibility outcomes are retained as meaningful evidence about the shared 4,096-token constraint. The immediate next task is a mentor-facing baseline decision, followed by a new decision entry that freezes the E2 model panel, common prompt/evidence/token contract, seeds, multiple-comparison correction, and confirmatory claim scope before any validation reader run.
+- **Revisit when:** the mentor explicitly changes the baseline family or shared resource contract; any new feasibility experiment must have a new hypothesis, stopping rule, and versioned configuration before outputs are observed.
+
 ## New decision template
 
 ### DXXX — Short title
