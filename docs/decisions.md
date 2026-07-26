@@ -203,6 +203,16 @@ Required fields: ID, date, owner, status, decision, alternatives, evidence, expe
 - **Impact:** LFM2.5 is not eligible for the primary D017 resource-matched E2 comparison. The finalization bug is fixed in `fb84006`, but that fix cannot justify repeating observed model outputs. Exact total evaluation throughput, peak allocated/reserved memory, generation-process `pip freeze`, and generation-process `nvidia-smi` were not written before the exception and remain explicitly unavailable rather than reconstructed. The Qwen D017 attempts remain unopened and may proceed sequentially after this preserved failure is reviewed.
 - **Revisit when:** the mentor changes the shared 4,096-token contract or explicitly authorizes a new preregistered feasibility question; do not revisit based on the observed answer quality.
 
+### D021 — Fail the Qwen3.5-0.8B D017 interface gate without rerunning it
+
+- **Date / owner:** 2026-07-26 / alexander_dikov.
+- **Status:** accepted after the complete immutable Notebook artifact was independently audited.
+- **Decision:** count `p1-qwen3.5-0.8b-thinking-gold-train-smoke-v5` as Qwen3.5-0.8B's single D017 attempt, mark its interface gate as failed, and do not rerun or tune it. Exclude Qwen3.5-0.8B from the primary resource-matched E2 panel because it violates both the zero-exhaustion and all-answers-parseable requirements under the shared 2,048+2,048 allocation.
+- **Alternatives:** repeat with another sampling seed; increase only Qwen's output budget; disable thinking; change the parser after observing outputs; accept exhausted generations as ordinary scored answers; select the model based on its exploratory EM/F1.
+- **Evidence:** artifact SHA256 `5d150a51aea1f53c2d135c9e6c36f64ed65cbc23b84a05f15e2f737d63af978b` resolves to source revision `c42fdb1215efcffa5daa4ff4b8234fc2fb6d7e94` and manifest SHA256 `9d27f85e93682889d228db4888a47d4e6856fb77c4bc40494c710a78ad6ddb6f`. Audit revision `d879968ff953d21828384eb4d5c520c59207ed73` verified the manifest inventory, source/data/lock checksums, environment, record order, prompt hashes, parser outputs, reasoning detection, per-example scores, aggregate metrics, and runtime consistency. The run produced reasoning on 16/16 targets but exhausted 2,048 generated tokens on 12/16, returned only 9/16 parseable final answers, and truncated zero inputs; `interface_gate_passed=false`. Exploratory train-only EM/F1 are both 0.375 and cannot support H1. The reviewed report is `results/reviews/p1-qwen3.5-0.8b-thinking-gold-train-smoke-v5.audit.json`.
+- **Impact:** Qwen3.5-0.8B is ineligible for the primary D017 resource-matched E2 comparison. Its complete runtime record remains available: 999.582 seconds evaluation time, 62.461 seconds mean latency, 0.0160 examples/second, and 1,916,718,592 bytes peak allocated GPU memory on one A100-SXM4-80GB. Qwen3.5-2B remains the final unopened D017 model attempt and may proceed once in the same sequential Notebook fallback.
+- **Revisit when:** the mentor changes the common 4,096-token contract or authorizes a distinct preregistered non-thinking/control experiment; do not revisit based on these observed answers.
+
 ## New decision template
 
 ### DXXX — Short title

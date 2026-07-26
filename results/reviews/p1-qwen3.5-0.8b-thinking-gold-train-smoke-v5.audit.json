@@ -1,0 +1,83 @@
+{
+  "audit": {
+    "integrity_status": "passed",
+    "original_status": "complete",
+    "recovery_scope": "not_applicable_complete_run",
+    "unrecoverable_original_fields": []
+  },
+  "claim_scope": "Final exploratory train-only native-thinking compatibility gate under D017-D020 Notebook fallback; no H1, validation, HRM-comparison, cross-environment efficiency, or article-result claim.",
+  "environment_from_terminal": {
+    "gpu": "NVIDIA A100-SXM4-80GB",
+    "model": "Qwen/Qwen3.5-0.8B",
+    "model_load_seconds": 42.155,
+    "parameters": 852985920,
+    "torch": "2.5.1+cu121",
+    "transformers": "5.9.0"
+  },
+  "experiment_id": "p1-qwen3.5-0.8b-thinking-gold-train-smoke-v5",
+  "provenance": {
+    "archive": "results/runs/_archives/p1-qwen3.5-0.8b-thinking-gold-train-smoke-v5-artifacts-20260726T122952Z.tar.gz",
+    "archive_sha256": "5d150a51aea1f53c2d135c9e6c36f64ed65cbc23b84a05f15e2f737d63af978b",
+    "audit_source_revision": "d879968ff953d21828384eb4d5c520c59207ed73",
+    "environment_sha256": "6f6afdd8da5a18b4ee0d0a4d15245e021f673397e0befa10f01343ec61d0b0f2",
+    "manifest_sha256": "9d27f85e93682889d228db4888a47d4e6856fb77c4bc40494c710a78ad6ddb6f",
+    "metrics_sha256": "cb021ef857dee14ff2ea9ccde752c3f274dfab1f58ae10b600dd163dabf6099b",
+    "original_source_revision": "c42fdb1215efcffa5daa4ff4b8234fc2fb6d7e94",
+    "predictions_sha256": "63530b6e04ff8322b6262531692e7a5695bec6e0727c9785d36562d10869eef9",
+    "raw_run_dir": "results/runs/p1-qwen3.5-0.8b-thinking-gold-train-smoke-v5",
+    "resolved_config_sha256": "843e1f5270d52db8607ee8d6d338608e0c0becaba675bf2c3eae998553398da2",
+    "retrieval_sha256": "a8c293eb7cc685e177f3c623b8d1015636de135943075082d6e12f76566fa75f",
+    "source_config": "experiments/configs/p1-qwen3.5-0.8b-thinking-gold-train-smoke-v5.yaml",
+    "source_config_sha256": "d9772b49198d920c64c3396c8d395152cb41b0e3f31c81ffceac09dabbaa5551",
+    "statistics_sha256": "8e13cba8552dc729494e00c5848551e620fe0e64abb935c01e57013937635e19",
+    "terminal_log_sha256": "b144da7c5070814b8afbb71e173ccefa034efd2860a4946c3bf80a9be79499b5"
+  },
+  "reported_runtime": {
+    "evaluation_seconds": 999.5823468599992,
+    "generated_tokens_mean": 1849.125,
+    "generated_tokens_total": 29586,
+    "latency_mean_seconds": 62.460931973374954,
+    "model_load_seconds": 42.15456562300096,
+    "peak_allocated_bytes": 1916718592,
+    "peak_reserved_bytes": 2111832064,
+    "throughput_examples_per_second": 0.01600668524235247
+  },
+  "schema_version": 1,
+  "verified_metrics": {
+    "answer_exact_match": 0.375,
+    "answer_f1": 0.375,
+    "answer_precision": 0.375,
+    "answer_recall": 0.375,
+    "budget_exhausted_count": 12,
+    "budget_exhausted_ids": [
+      "5a7302895542992359bc31fc",
+      "5a9095bf55429933b8a20572",
+      "5a87b9955542996e4f3088ef",
+      "5adee1515542992d7e9f9263",
+      "5ab2fc3355429976abd1bbf0",
+      "5ae109f755429920d523429e",
+      "5a7a892a55429941d65f268d",
+      "5adcc27c5542994ed6169bf1",
+      "5ab2b784554299545a2cfa1f",
+      "5a7ebff35542994959419a6e",
+      "5ab280b95542997061209642",
+      "5a79d0945542994f819ef0b9"
+    ],
+    "evaluated_count": 16,
+    "explicit_reasoning_count": 16,
+    "generated_tokens_mean": 1849.125,
+    "generated_tokens_total": 29586,
+    "generation_latency_mean_seconds": 62.460931973374954,
+    "generation_latency_sum_seconds": 999.3749115739993,
+    "generation_only_throughput_examples_per_second": 0.01601000767049501,
+    "input_tokens_max": 1332,
+    "input_tokens_min": 1070,
+    "interface_gate_passed": false,
+    "reasoning_detection_methods": {
+      "closed_think_block": 5,
+      "pre_answer_text": 11
+    },
+    "truncated_example_count": 0,
+    "valid_extraction_count": 9
+  }
+}
