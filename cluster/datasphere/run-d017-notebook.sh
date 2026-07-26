@@ -52,10 +52,10 @@ set +e
   BOOTSTRAP_PYTHON=""
   for candidate in \
     "${D017_BOOTSTRAP_PYTHON:-}" \
-    python \
-    python3 \
     /kernel/bin/python \
-    /kernel/bin/python3
+    /kernel/bin/python3 \
+    python3 \
+    python
   do
     if [[ -n "${candidate}" ]] && command -v "${candidate}" >/dev/null 2>&1; then
       BOOTSTRAP_PYTHON="$(command -v "${candidate}")"
