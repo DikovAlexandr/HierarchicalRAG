@@ -5,10 +5,16 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT}"
 
-CONFIG="${1:-experiments/configs/p1-lfm2.5-thinking-gold-train-smoke-v3.yaml}"
+if [[ "$#" -ne 1 ]]; then
+  echo "Usage: bash cluster/datasphere/run-d017-notebook.sh <supported-config>" >&2
+  exit 2
+fi
+
+CONFIG="$1"
 case "${CONFIG}" in
   experiments/configs/p1-lfm2.5-thinking-gold-train-smoke-v3.yaml)
-    EXPERIMENT_ID="p1-lfm2.5-thinking-gold-train-smoke-v3"
+    echo "Refusing to repeat the completed LFM2.5 D017 attempt (D020)" >&2
+    exit 2
     ;;
   experiments/configs/p1-qwen3.5-0.8b-thinking-gold-train-smoke-v5.yaml)
     EXPERIMENT_ID="p1-qwen3.5-0.8b-thinking-gold-train-smoke-v5"
