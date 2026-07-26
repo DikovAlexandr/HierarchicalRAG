@@ -255,7 +255,7 @@ for config in "${CONFIGS[@]}"; do
   status=${PIPESTATUS[0]}
   set -e
 
-  archive_items=("${log_file}")
+  archive_items=("${BOOTSTRAP_LOG}" "${log_file}")
   if [[ -d "${run_dir}" ]]; then
     archive_items+=("${run_dir}")
   fi

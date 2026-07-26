@@ -118,7 +118,11 @@ def test_complete_output_validation_matches_raw_summary(tmp_path):
             "mtp_checkpoint_tensor_element_count": 10,
             "max_position_embeddings": 4096,
         },
-        "prompt": {"decoding": {"do_sample": True}},
+        "prompt": {
+            "max_input_tokens": 2048,
+            "max_new_tokens": 2048,
+            "decoding": {"do_sample": True},
+        },
     }
     reported = {
         "experiment_id": "example",
@@ -176,6 +180,18 @@ def test_complete_output_validation_matches_raw_summary(tmp_path):
         json.dumps(environment), encoding="utf-8"
     )
 
+    _validate_complete_outputs(
+        run_dir=tmp_path,
+        config=config,
+        reported_metrics=reported,
+        recovered=recovered,
+    )
+
+    config["prompt"]["max_new_tokens"] = 4096
+    reported["claim_eligibility"] = (
+        "none; D023 exploratory train-only expanded-output "
+        "budget-sensitivity study"
+    )
     _validate_complete_outputs(
         run_dir=tmp_path,
         config=config,

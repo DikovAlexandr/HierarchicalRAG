@@ -36,6 +36,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--run-dir", type=Path, required=True)
     parser.add_argument("--terminal-log", type=Path, required=True)
+    parser.add_argument(
+        "--bootstrap-log",
+        type=Path,
+        help="optional shared environment/bootstrap log for series artifacts",
+    )
     parser.add_argument("--source-config", type=Path, required=True)
     parser.add_argument("--archive", type=Path)
     parser.add_argument("--output", type=Path)
@@ -47,6 +52,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     report = audit_artifact(
         run_dir=args.run_dir.resolve(),
         terminal_log=args.terminal_log.resolve(),
+        bootstrap_log=(
+            args.bootstrap_log.resolve() if args.bootstrap_log else None
+        ),
         source_config=args.source_config.resolve(),
         archive=args.archive.resolve() if args.archive else None,
     )
@@ -60,6 +68,7 @@ def audit_artifact(
     *,
     run_dir: Path,
     terminal_log: Path,
+    bootstrap_log: Path | None = None,
     source_config: Path,
     archive: Path | None,
 ) -> dict[str, Any]:
@@ -124,6 +133,10 @@ def audit_artifact(
         examples=examples,
     )
     terminal_text = terminal_log.read_text(encoding="utf-8")
+    if bootstrap_log is not None:
+        terminal_text = (
+            bootstrap_log.read_text(encoding="utf-8") + "\n" + terminal_text
+        )
     completed_ids = re.findall(
         r"^progress=.* examples=\d+/\d+ example_id=(\S+) status=complete ",
         terminal_text,
@@ -179,6 +192,9 @@ def audit_artifact(
     if archive is not None:
         provenance["archive"] = _display_path(archive)
         provenance["archive_sha256"] = sha256_file(archive)
+    if bootstrap_log is not None:
+        provenance["bootstrap_log"] = _display_path(bootstrap_log)
+        provenance["bootstrap_log_sha256"] = sha256_file(bootstrap_log)
 
     environment_from_terminal = {
         "torch": environment_match.group(1),
@@ -349,9 +365,7 @@ def _validate_complete_outputs(
         "answer_f1": recovered["answer_f1"],
         "answer_precision": recovered["answer_precision"],
         "answer_recall": recovered["answer_recall"],
-        "claim_eligibility": (
-            "none; D013/D014/D017 final train-only compatibility gate"
-        ),
+        "claim_eligibility": _expected_claim_eligibility(config),
     }
     for field, expected in expected_metrics.items():
         if reported_metrics.get(field) != expected:
@@ -404,10 +418,37 @@ def _validate_complete_outputs(
             raise ValueError(f"environment differs from config: {field}")
     if not environment.get("pip_freeze") or not environment.get("nvidia_smi"):
         raise ValueError("complete run lacks environment command outputs")
-    if int(environment["language_model_parameter_count"]) > int(
-        environment["parameter_count"]
+    language_model_parameter_count = environment.get(
+        "language_model_parameter_count"
+    )
+    if (
+        int(model.get("mtp_checkpoint_tensor_element_count", 0)) > 0
+        and language_model_parameter_count is None
+    ):
+        raise ValueError("MTP checkpoint lacks language model parameter count")
+    if (
+        language_model_parameter_count is not None
+        and int(language_model_parameter_count) > int(environment["parameter_count"])
     ):
         raise ValueError("language model parameter count exceeds total parameters")
+
+
+def _expected_claim_eligibility(config: Mapping[str, Any]) -> str:
+    prompt = config["prompt"]
+    allocation = (
+        int(prompt["max_input_tokens"]),
+        int(prompt["max_new_tokens"]),
+    )
+    if allocation == (2048, 2048):
+        return "none; D013/D014/D017 final train-only compatibility gate"
+    if allocation == (3584, 512):
+        return "none; D013/D014 train-only compatibility gate"
+    if allocation in {(2048, 4096), (2048, 8192)}:
+        return (
+            "none; D023 exploratory train-only expanded-output "
+            "budget-sensitivity study"
+        )
+    raise ValueError(f"unsupported native-thinking token allocation: {allocation}")
 
 
 def _verify_inventory(run_dir: Path, inventory: Sequence[Mapping[str, Any]]) -> None:
