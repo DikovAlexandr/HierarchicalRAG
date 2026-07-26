@@ -9,6 +9,7 @@ The first milestone targets text RAG on multi-hop question answering. Repository
 - [Project brief](docs/project.md): goal, hypotheses, scope, and evaluation contract.
 - [Research protocol](.agents/README.md): mandatory rules for honest and reproducible experiments.
 - [Decision log](docs/decisions.md): motivated protocol and scope decisions.
+- [Research progress](docs/progress.md): verified evidence, stage readiness, and next gates.
 - [Literature map](references/README.md): papers and reading priorities.
 - [Agent rules](AGENTS.md): instructions for LLM-assisted work.
 - [Cluster execution](cluster/README.md): pinned Linux container and Slurm/Apptainer contract.
