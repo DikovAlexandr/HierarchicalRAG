@@ -203,3 +203,7 @@ def validate_dense_build_protocol(config: Mapping[str, Any]) -> None:
         raise ValueError("dense shard size must be a positive batch-size multiple")
     if int(runtime["max_attempt_seconds"]) < 1:
         raise ValueError("dense build attempt limit must be positive")
+    if int(runtime["minimum_initial_free_bytes"]) < 10 * 1024**3:
+        raise ValueError("dense build initial free-space guard is too small")
+    if int(runtime["minimum_resume_free_bytes"]) < 2 * 1024**3:
+        raise ValueError("dense build resume free-space guard is too small")

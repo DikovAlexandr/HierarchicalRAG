@@ -9,6 +9,7 @@ import json
 import os
 import platform
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -100,13 +101,41 @@ def execute(
             revision=revision,
         )
 
-    attempt_started = time.perf_counter()
     store = DenseBuildStore(
         final_dir=final_dir,
         document_count=int(dataset["expected_indexed_document_count"]),
         dimension=int(index["dimension"]),
         identity=identity,
     )
+    reclaimed = store.recover_incomplete_zero_shard_allocation()
+    if reclaimed:
+        print(
+            f"stage=zero_shard_partial_recovered reclaimed_bytes={reclaimed}",
+            flush=True,
+        )
+    initial_build = not store.building_dir.exists()
+    minimum_free = int(
+        runtime[
+            "minimum_initial_free_bytes"
+            if initial_build
+            else "minimum_resume_free_bytes"
+        ]
+    )
+    store.building_dir.parent.mkdir(parents=True, exist_ok=True)
+    available = shutil.disk_usage(store.building_dir.parent).free
+    print(
+        f"stage=disk_preflight available_bytes={available} "
+        f"required_bytes={minimum_free} initial_build={str(initial_build).lower()}",
+        flush=True,
+    )
+    if available < minimum_free:
+        raise RuntimeError(
+            "insufficient persistent storage for dense build: "
+            f"available={available} required={minimum_free}; resize the "
+            "DataSphere project storage to at least 25 GB before retrying"
+        )
+
+    attempt_started = time.perf_counter()
     completed = store.open()
     resumed_from = completed
     print(

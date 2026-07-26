@@ -69,6 +69,8 @@ runtime:
   batch_size: 128
   shard_documents: 32768
   max_attempt_seconds: 27000
+  minimum_initial_free_bytes: 12884901888
+  minimum_resume_free_bytes: 3221225472
   datasphere_configuration: g2.1
   datasphere_units_per_second: 116
   require_clean_worktree: true

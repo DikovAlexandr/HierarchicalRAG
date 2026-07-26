@@ -101,6 +101,46 @@ def test_dense_store_rejects_resume_with_changed_identity(tmp_path):
         changed.open()
 
 
+def test_dense_store_recovers_only_incomplete_zero_shard_allocation(tmp_path):
+    final_dir = tmp_path / "dense-index"
+    identity = {
+        "source_revision": "one",
+        "source_config_sha256": "config-one",
+        "corpus_sha256": "corpus",
+        "model_id": "qwen",
+        "model_revision": "model-revision",
+        "dimension": 2,
+        "max_input_tokens": 512,
+        "batch_size": 2,
+        "shard_documents": 2,
+    }
+    store = DenseBuildStore(
+        final_dir=final_dir,
+        document_count=10,
+        dimension=2,
+        identity=identity,
+    )
+    store.building_dir.mkdir()
+    store.info_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "building",
+                "document_count": 10,
+                "dimension": 2,
+                "identity": identity,
+            }
+        )
+    )
+    store.progress_path.write_text(
+        json.dumps({"completed_documents": 0})
+    )
+    store.vector_path.write_bytes(b"partial")
+
+    assert store.recover_incomplete_zero_shard_allocation() > 0
+    assert not store.building_dir.exists()
+
+
 def test_versioned_dense_fullwiki_build_config_is_frozen():
     config = load_experiment_config(
         "experiments/configs/p2-qwen3-embedding-fullwiki-build-v1.yaml"

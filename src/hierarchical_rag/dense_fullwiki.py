@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -49,6 +50,69 @@ class DenseBuildStore:
         completed = self._completed_documents()
         self._validate_contiguous_shards(completed)
         return completed
+
+    def recover_incomplete_zero_shard_allocation(self) -> int:
+        """Remove only an identity-matched, zero-output partial allocation."""
+
+        if self.final_dir.exists() or not self.building_dir.exists():
+            return 0
+        try:
+            info = json.loads(self.info_path.read_text(encoding="utf-8"))
+            progress = json.loads(self.progress_path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, json.JSONDecodeError):
+            return 0
+        if (
+            info.get("schema_version") != 1
+            or info.get("status") != "building"
+            or info.get("document_count") != self.document_count
+            or info.get("dimension") != self.dimension
+            or not self._same_protocol_identity(info.get("identity"))
+            or progress.get("completed_documents") != 0
+        ):
+            return 0
+        expected_vector_size = self.document_count * self.dimension * VECTOR_BYTES
+        if self.vector_path.is_file() and self.vector_path.stat().st_size == expected_vector_size:
+            return 0
+        if self.metadata_path.is_file():
+            try:
+                connection = sqlite3.connect(self.metadata_path)
+                shard_count = int(
+                    connection.execute("SELECT COUNT(*) FROM shards").fetchone()[0]
+                )
+                document_count = int(
+                    connection.execute("SELECT COUNT(*) FROM documents").fetchone()[0]
+                )
+                connection.close()
+            except sqlite3.Error:
+                return 0
+            if shard_count or document_count:
+                return 0
+        reclaimed = sum(
+            path.stat().st_size
+            for path in self.building_dir.rglob("*")
+            if path.is_file()
+        )
+        shutil.rmtree(self.building_dir)
+        return reclaimed
+
+    def _same_protocol_identity(self, candidate: Any) -> bool:
+        if not isinstance(candidate, Mapping):
+            return False
+        invariant_fields = (
+            "corpus_sha256",
+            "model_id",
+            "model_revision",
+            "dimension",
+            "max_input_tokens",
+            "batch_size",
+            "shard_documents",
+        )
+        return all(
+            field in candidate
+            and field in self.identity
+            and candidate[field] == self.identity[field]
+            for field in invariant_fields
+        )
 
     def close(self) -> None:
         if self.connection is not None:

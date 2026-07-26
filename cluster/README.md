@@ -171,6 +171,13 @@ questions and cannot produce retrieval quality. The single upload bundle embeds
 the checksum-verified 1.55 GB official corpus, so its construction and upload
 take materially longer than earlier bundles:
 
+Before uploading, resize persistent project storage to at least 25 GB; 30 GB is
+recommended. The free 10 GB volume cannot contain the 5.36 GB vector matrix,
+SQLite metadata, corpus, environment, and filesystem headroom together. The
+runner rejects a fresh allocation unless at least 12 GiB is free and rejects a
+resume unless at least 3 GiB remains. It automatically removes only a matching
+zero-shard partial allocation left by the preserved D032 storage failure.
+
 ```powershell
 python cluster/datasphere/prepare_d031_notebook_bundle.py
 ```

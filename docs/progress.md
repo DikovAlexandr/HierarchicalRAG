@@ -6,14 +6,14 @@ Last updated: 2026-07-26.
 
 The repository preparation, reproducibility infrastructure, metric validation, HRM-Text interface work, full BM25 retrieval run, and train-only reader feasibility studies are complete or substantially complete. The project has not yet produced a confirmatory HRM-versus-baseline comparison on shared validation evidence.
 
-The last reported DataSphere balance before the D028 calibration was 1,455,036/5,000,000 units. The project operator has since authorized at least 5,000,000 additional units. D031 therefore supersedes the earlier D029/D030 resource prohibition and authorizes the unchanged full-corpus D028 build, while retaining an explicit 27,000-second attempt cap and protected H1–H3/reproduction envelopes.
+The last reported DataSphere balance before the D028 calibration was 1,455,036/5,000,000 units. The project operator has since authorized at least 5,000,000 additional units. D031 therefore supersedes the earlier D029/D030 compute prohibition and authorizes the unchanged full-corpus D028 build. Its first command stopped before model loading because the free 10 GB project volume had only 3.7 GB available, less than the 5.36 GB vector matrix alone. D032 preserves this zero-shard infrastructure failure and requires storage expansion before retrying.
 
 The end-to-end project is approximately **47% complete** by research-stage exit criteria. This estimate is not based on code volume: feasibility, infrastructure, sparse retrieval, dense resource feasibility, and reader-budget diagnosis are complete, while the claim-bearing H1–H3 experiments remain mostly ahead.
 
 | Stage | Status | Completed | Remaining exit work |
 |---|---|---|---|
 | P1 — Feasibility | Complete | Pinned HRM-Text reference, deterministic train slice, metric harness, GPU environment, reader interfaces, and preserved failures | No remaining P1 work; baseline selection gates P3/E2 |
-| P2 — Retrieval | Full dense build ready | Full 7,405-example BM25 run, independent audit, bootstrap CI, error analysis, audited D028 calibration, and tested resumable D031 builder | Encode and audit the full corpus, then pin and run exact dense validation search before binding immutable caches to readers |
+| P2 — Retrieval | Storage resize required | Full 7,405-example BM25 run, independent audit, bootstrap CI, error analysis, audited D028 calibration, and tested resumable D031 builder with D032 disk guards | Resize project storage to 25–30 GB, encode and audit the full corpus, then pin and run exact dense validation search |
 | P3 — Frozen HRM | In progress | HRM adapter and gold-evidence train smoke | Identical BM25-evidence smoke and confirmatory validation comparison |
 | P4 — Robustness | Prepared only | Deterministic distractor machinery | Shared-reader runs at 0, 1, 2, and 4 distractors with paired analysis |
 | P5 — Adaptation | Not started | Hypothesis and safeguards defined | Training data, low-level adaptation, seeds, ablations, and reasoning-retention evaluation |
@@ -84,7 +84,7 @@ Raw archives are stored locally under `results/runs/_archives/`; extracted immut
 
 ## Next gates
 
-1. Run the corpus-only `p2-qwen3-embedding-fullwiki-build-v1` command on A100; preserve its shard checkpoints and artifact archive even on failure.
+1. Resize DataSphere project storage to at least 25 GB (30 GB recommended), then run the corrected corpus-only `p2-qwen3-embedding-fullwiki-build-v1` bundle on A100; preserve its shard checkpoints and artifact archive even on failure.
 2. Independently audit the completed vector/metadata manifest and add their exact checksums to a new dense E1 config before opening validation questions.
 3. Run exact dense search on all 7,405 examples, audit retrieval metrics, and freeze immutable BM25/dense/gold evidence caches.
 4. Benchmark a batched reader implementation on fixed synthetic/train-only prompts and select execution by units per completed example.
