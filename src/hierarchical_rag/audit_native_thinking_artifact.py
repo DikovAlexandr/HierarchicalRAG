@@ -1,4 +1,4 @@
-"""Recover verifiable metrics from a post-generation native-thinking failure."""
+"""Audit immutable native-thinking run artifacts from raw records."""
 
 from __future__ import annotations
 
@@ -30,8 +30,8 @@ from hierarchical_rag.qwen_baseline import extract_final_answer
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Audit immutable raw outputs after the known D017 post-generation "
-            "metrics-finalization failure; never rerun the model."
+            "Audit a complete D017 artifact or recover deterministic fields "
+            "after the known post-generation finalization failure."
         )
     )
     parser.add_argument("--run-dir", type=Path, required=True)
@@ -64,15 +64,24 @@ def audit_artifact(
     archive: Path | None,
 ) -> dict[str, Any]:
     manifest = _load_json(run_dir / "manifest.json")
-    failed_metrics = _load_json(run_dir / "metrics.json")
+    reported_metrics = _load_json(run_dir / "metrics.json")
     resolved_config_path = run_dir / "resolved-config.yaml"
     config = load_experiment_config(resolved_config_path)
     validate_native_thinking_protocol(config)
 
     expected_error = "NameError: name 'experiment_config' is not defined"
-    if failed_metrics != {"error": expected_error, "status": "failed"}:
-        raise ValueError("run does not contain the known finalization failure")
-    if manifest.get("extra", {}).get("error") != expected_error:
+    manifest_status = manifest.get("extra", {}).get("status")
+    is_known_failure = reported_metrics == {
+        "error": expected_error,
+        "status": "failed",
+    }
+    is_complete = (
+        reported_metrics.get("status") == "exploratory_train_only"
+        and manifest_status == "complete"
+    )
+    if not is_known_failure and not is_complete:
+        raise ValueError("run is neither complete nor the known finalization failure")
+    if is_known_failure and manifest.get("extra", {}).get("error") != expected_error:
         raise ValueError("manifest error differs from the known finalization failure")
     if "D017" not in config["experiment"]["decision_ids"]:
         raise ValueError("artifact recovery is restricted to the D017 final gate")
@@ -142,6 +151,15 @@ def audit_artifact(
         or int(model_match.group(3)) != int(config["model"]["parameter_count_expected"])
     ):
         raise ValueError("terminal environment/model record differs from the config")
+    if is_complete:
+        if f"stage=model_runner_complete experiment_id={manifest['experiment_id']}" not in terminal_text:
+            raise ValueError("complete run lacks the terminal completion marker")
+        _validate_complete_outputs(
+            run_dir=run_dir,
+            config=config,
+            reported_metrics=reported_metrics,
+            recovered=recovered,
+        )
 
     provenance: dict[str, Any] = {
         "original_source_revision": manifest["git_commit"],
@@ -151,6 +169,9 @@ def audit_artifact(
         "source_config_sha256": sha256_file(source_config),
         "resolved_config_sha256": sha256_file(resolved_config_path),
         "manifest_sha256": sha256_file(run_dir / "manifest.json"),
+        "metrics_sha256": sha256_file(run_dir / "metrics.json"),
+        "environment_sha256": sha256_file(run_dir / "environment.txt"),
+        "statistics_sha256": sha256_file(run_dir / "statistics.json"),
         "predictions_sha256": sha256_file(run_dir / "predictions.jsonl"),
         "retrieval_sha256": sha256_file(run_dir / "retrieval.jsonl"),
         "terminal_log_sha256": sha256_file(terminal_log),
@@ -158,6 +179,31 @@ def audit_artifact(
     if archive is not None:
         provenance["archive"] = _display_path(archive)
         provenance["archive_sha256"] = sha256_file(archive)
+
+    environment_from_terminal = {
+        "torch": environment_match.group(1),
+        "transformers": environment_match.group(2),
+        "gpu": environment_match.group(3),
+        "model": model_match.group(1),
+        "parameters": int(model_match.group(3)),
+        "model_load_seconds": float(model_match.group(2)),
+    }
+    if is_complete:
+        return {
+            "schema_version": 1,
+            "experiment_id": config["experiment"]["id"],
+            "audit": {
+                "integrity_status": "passed",
+                "recovery_scope": "not_applicable_complete_run",
+                "original_status": "complete",
+                "unrecoverable_original_fields": [],
+            },
+            "provenance": provenance,
+            "environment_from_terminal": environment_from_terminal,
+            "verified_metrics": recovered,
+            "reported_runtime": reported_metrics["runtime"],
+            "claim_scope": config["experiment"]["claim_scope"],
+        }
 
     return {
         "schema_version": 1,
@@ -177,14 +223,7 @@ def audit_artifact(
             ],
         },
         "provenance": provenance,
-        "environment_from_terminal": {
-            "torch": environment_match.group(1),
-            "transformers": environment_match.group(2),
-            "gpu": environment_match.group(3),
-            "model": model_match.group(1),
-            "parameters": int(model_match.group(3)),
-            "model_load_seconds": float(model_match.group(2)),
-        },
+        "environment_from_terminal": environment_from_terminal,
         "recovered_metrics": recovered,
         "claim_scope": (
             "Exploratory train-only D017 interface evidence only; no H1, "
@@ -283,6 +322,92 @@ def summarize_records(
         "input_tokens_min": min(int(row["input_tokens"]) for row in predictions),
         "input_tokens_max": max(int(row["input_tokens"]) for row in predictions),
     }
+
+
+def _validate_complete_outputs(
+    *,
+    run_dir: Path,
+    config: Mapping[str, Any],
+    reported_metrics: Mapping[str, Any],
+    recovered: Mapping[str, Any],
+) -> None:
+    count = int(recovered["evaluated_count"])
+    expected_metrics = {
+        "experiment_id": config["experiment"]["id"],
+        "status": "exploratory_train_only",
+        "interface_gate_passed": recovered["interface_gate_passed"],
+        "evaluated_count": count,
+        "valid_extraction_count": recovered["valid_extraction_count"],
+        "valid_extraction_rate": recovered["valid_extraction_count"] / count,
+        "invalid_output_count": count - recovered["valid_extraction_count"],
+        "budget_exhausted_count": recovered["budget_exhausted_count"],
+        "explicit_reasoning_count": recovered["explicit_reasoning_count"],
+        "explicit_reasoning_rate": recovered["explicit_reasoning_count"] / count,
+        "reasoning_detection_methods": recovered["reasoning_detection_methods"],
+        "truncated_example_count": recovered["truncated_example_count"],
+        "answer_exact_match": recovered["answer_exact_match"],
+        "answer_f1": recovered["answer_f1"],
+        "answer_precision": recovered["answer_precision"],
+        "answer_recall": recovered["answer_recall"],
+        "claim_eligibility": (
+            "none; D013/D014/D017 final train-only compatibility gate"
+        ),
+    }
+    for field, expected in expected_metrics.items():
+        if reported_metrics.get(field) != expected:
+            raise ValueError(f"reported metric differs from raw records: {field}")
+
+    runtime = reported_metrics.get("runtime")
+    if not isinstance(runtime, Mapping):
+        raise ValueError("complete run lacks runtime metrics")
+    for field, expected in (
+        ("generated_tokens_total", recovered["generated_tokens_total"]),
+        ("generated_tokens_mean", recovered["generated_tokens_mean"]),
+        ("latency_mean_seconds", recovered["generation_latency_mean_seconds"]),
+    ):
+        if runtime.get(field) != expected:
+            raise ValueError(f"reported runtime differs from raw records: {field}")
+    evaluation_seconds = float(runtime["evaluation_seconds"])
+    if evaluation_seconds < float(recovered["generation_latency_sum_seconds"]):
+        raise ValueError("evaluation time is shorter than summed generation latency")
+    if runtime["throughput_examples_per_second"] != count / evaluation_seconds:
+        raise ValueError("reported throughput differs from evaluation time")
+    if int(runtime["peak_allocated_bytes"]) <= 0 or int(runtime["peak_reserved_bytes"]) <= 0:
+        raise ValueError("complete run lacks positive GPU memory measurements")
+
+    statistics = _load_json(run_dir / "statistics.json")
+    if statistics.get("status") != "not_applicable":
+        raise ValueError("train-only interface gate must not report statistics")
+    environment = _load_json(run_dir / "environment.txt")
+    model = config["model"]
+    prompt = config["prompt"]
+    expected_environment = {
+        "torch": model["torch_version"],
+        "transformers": model["transformers_version"],
+        "model_id": model["id"],
+        "model_revision": model["revision"],
+        "model_type": model["architecture"],
+        "model_backend": model["backend"],
+        "model_dtype": "torch.bfloat16",
+        "parameter_count": model["parameter_count_expected"],
+        "checkpoint_tensor_element_count": model["checkpoint_tensor_element_count"],
+        "mtp_checkpoint_tensor_element_count": model.get(
+            "mtp_checkpoint_tensor_element_count", 0
+        ),
+        "max_position_embeddings": model["max_position_embeddings"],
+        "decoding": prompt["decoding"],
+        "presence_penalty_semantics": "generated_tokens_only_v1",
+        "seed": config["experiment"]["seeds"][0],
+    }
+    for field, expected in expected_environment.items():
+        if environment.get(field) != expected:
+            raise ValueError(f"environment differs from config: {field}")
+    if not environment.get("pip_freeze") or not environment.get("nvidia_smi"):
+        raise ValueError("complete run lacks environment command outputs")
+    if int(environment["language_model_parameter_count"]) > int(
+        environment["parameter_count"]
+    ):
+        raise ValueError("language model parameter count exceeds total parameters")
 
 
 def _verify_inventory(run_dir: Path, inventory: Sequence[Mapping[str, Any]]) -> None:
