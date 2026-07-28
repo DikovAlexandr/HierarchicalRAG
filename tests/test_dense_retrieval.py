@@ -112,6 +112,24 @@ def test_dense_calibration_protocol_accepts_frozen_choice():
     validate_dense_calibration_protocol(_config())
 
 
+def test_dense_calibration_protocol_accepts_unmetered_local_backend_under_d033():
+    config = deepcopy(_config())
+    config["experiment"]["decision_ids"].append("D033")
+    config["runtime"]["execution_backend"] = "local_docker"
+    config["runtime"]["datasphere_units_per_second"] = 0
+
+    validate_dense_calibration_protocol(config)
+
+
+def test_dense_calibration_protocol_rejects_local_backend_without_d033():
+    config = deepcopy(_config())
+    config["runtime"]["execution_backend"] = "local_docker"
+    config["runtime"]["datasphere_units_per_second"] = 0
+
+    with pytest.raises(ValueError, match="must cite D033"):
+        validate_dense_calibration_protocol(config)
+
+
 def test_dense_calibration_protocol_rejects_quality_relevant_drift():
     config = deepcopy(_config())
     config["retriever"]["serialization"] = "title_plus_text"
@@ -161,6 +179,14 @@ def test_prepare_calibration_sample_records_provenance(tmp_path):
 def test_versioned_dense_calibration_config_is_valid():
     config = load_experiment_config(
         "experiments/configs/p2-qwen3-embedding-fullwiki-calibration-v1.yaml"
+    )
+
+    validate_dense_calibration_protocol(config)
+
+
+def test_versioned_local_dense_calibration_config_is_valid():
+    config = load_experiment_config(
+        "experiments/configs/p2-qwen3-embedding-local-calibration-v1.yaml"
     )
 
     validate_dense_calibration_protocol(config)

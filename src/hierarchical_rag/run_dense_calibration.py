@@ -263,11 +263,12 @@ def _measure(
         for record in batch_records:
             stream.write(json.dumps(record, sort_keys=True) + "\n")
 
+    unit_rate = int(runtime["datasphere_units_per_second"])
     projection = project_compute(
         measured_documents=measured_count,
         measured_seconds=measured_seconds,
         full_corpus_documents=int(selection["full_corpus_documents"]),
-        units_per_second=int(runtime["datasphere_units_per_second"]),
+        units_per_second=max(unit_rate, 1),
         reserve_multiplier=float(runtime["projection_reserve_multiplier"]),
         external_throughput_cap=float(
             runtime["corpus_stream_documents_per_second"]
@@ -277,6 +278,9 @@ def _measure(
     embedding_bytes = projected_embedding_bytes(
         int(selection["full_corpus_documents"]), dimension
     )
+    projection_record = asdict(projection)
+    if unit_rate == 0:
+        projection_record["projected_units"] = None
     metrics = {
         "status": "complete_non_claim_bearing_resource_calibration",
         "labels_observed": False,
@@ -293,10 +297,13 @@ def _measure(
         "peak_allocated_bytes": peak_allocated,
         "peak_reserved_bytes": peak_reserved,
         "projected_embedding_bytes_fp16": embedding_bytes,
-        "projection": asdict(projection),
+        "projection": projection_record,
         "authorization": (
-            "calibration only; compare projected_units with current project balance "
+            "calibration only; compare projected wall time with the D033 local gate "
             "before a separate full-corpus build"
+            if unit_rate == 0
+            else "calibration only; compare projected_units with current project "
+            "balance before a separate full-corpus build"
         ),
     }
     statistics = {

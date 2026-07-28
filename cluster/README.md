@@ -62,6 +62,16 @@ The job definition uploads only declared code, configuration, lock, and ignored 
 
 The D018 Notebook fallback was restricted to D017 pre-container Job failures. D020–D022 preserve the completed failed LFM2.5, Qwen3.5-0.8B, and Qwen3.5-2B gates and forbid repeating them. D017 is closed; no further Notebook runner command is authorized until a mentor-approved baseline or resource-contract decision is recorded.
 
+### Local dense-resource gate
+
+D033 uses the same pinned Linux/PyTorch environment and frozen D028 corpus sample to decide whether the full dense corpus build can run on the local RTX 4060 without consuming the claim-bearing DataSphere budget. It is corpus-only and must not open HotpotQA questions or labels. From a clean committed checkout, run:
+
+```powershell
+pwsh -File cluster/run_dense_local_calibration.ps1
+```
+
+The runner builds `containers/dense-gpu.Dockerfile` at the exact Git revision, mounts the repository for checksummed inputs and immutable run outputs, and keeps the Hugging Face cache in a named Docker volume. The full build remains forbidden until the calibration passes both preregistered D033 gates: a 1.25x projected wall time of at most 48 hours and at most 7 GiB peak reserved GPU memory.
+
 The historical script now rejects all three consumed attempts. Its source, configs, terminal logs, raw artifacts, and reviewed audits remain preserved for reproducibility. Notebook efficiency measurements are not directly comparable with pinned-container Job measurements.
 
 ### D023 expanded-output Notebook series

@@ -1,0 +1,68 @@
+schema_version: 1
+
+experiment:
+  id: p2-qwen3-embedding-local-calibration-v1
+  hypothesis_id: E1
+  decision_ids: [D027, D028, D031, D032, D033]
+  owner: alexander_dikov
+  stage: corpus_side_resource_calibration
+  exact_command: python -m hierarchical_rag.run_dense_calibration --config experiments/configs/p2-qwen3-embedding-local-calibration-v1.yaml
+  seeds: []
+  stopping_rule: Encode the frozen 256-document warmup and 8,192-document systematic corpus sample once in the pinned Linux container on the local RTX 4060 using BF16 and batch size 32; report throughput, memory, truncation, storage, and a 1.25x-reserved wall-time projection; do not inspect benchmark questions or labels and do not start the full corpus build automatically.
+  exclusions: []
+
+dataset:
+  name: hotpotqa_fullwiki_20171001_abstracts
+  split: corpus_only
+  labels_observed: false
+  source_file: data/interim/hotpotqa/qwen3-embedding-calibration-s8448.jsonl
+  source_sha256: 70ad85afdb16e6ec8e2f9aaa2649f9156c61b6e6f6901c89d9ec46c9b38200a1
+  manifest_file: data/interim/hotpotqa/qwen3-embedding-calibration-s8448.manifest.json
+  manifest_sha256: fa0f52fcd872bdd900abe8c32f90f410a2ab05669834ab131336280bf5c53294
+  corpus_sha256: 1acca1c5cc93c4890ea51091d2bad7c3ef6987aead127ab88728dc9e26555729
+  selection:
+    method: systematic_rowid_v1
+    size: 8448
+    warmup_documents: 256
+    measured_documents: 8192
+    full_corpus_documents: 5233235
+
+retriever:
+  type: frozen_dense_biencoder
+  id: Qwen/Qwen3-Embedding-0.6B
+  revision: 97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+  architecture: qwen3
+  parameter_count_expected: 595776512
+  frozen: true
+  dtype: bfloat16
+  torch_version: 2.5.1+cu121
+  transformers_version: 5.9.0
+  serialization: text_only
+  query_instruction: Given a web search query, retrieve relevant passages that answer the query
+  pooling: last_non_padding_token
+  normalization: truncate_mrl_then_l2
+  output_dimension: 512
+  max_input_tokens: 512
+  attention_implementation: sdpa
+
+evaluation:
+  primary_metric: documents_per_second
+  secondary_metrics: [tokens_per_second, truncated_document_rate, peak_allocated_bytes, projected_full_seconds, projected_embedding_bytes_fp16]
+  statistics:
+    status: not_applicable_resource_measurement
+    quality_metrics_observed: false
+
+runtime:
+  device: cuda
+  expected_gpu_name_contains: RTX 4060
+  batch_size: 32
+  execution_backend: local_docker
+  datasphere_units_per_second: 0
+  corpus_stream_documents_per_second: 6539.4019962511575
+  projection_reserve_multiplier: 1.25
+  full_build_wall_time_limit_seconds: 172800
+  full_build_peak_reserved_limit_bytes: 7516192768
+  require_clean_source_image: true
+  dependency_lock_file: environments/hrm-text-gpu.lock
+  dependency_lock_sha256: 6837758e40ed412b567ac445af3ae78eb4d34898a0dbd261672b8d078be6785b
+  output_dir: results/runs/p2-qwen3-embedding-local-calibration-v1

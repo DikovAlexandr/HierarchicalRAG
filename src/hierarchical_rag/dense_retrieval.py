@@ -137,8 +137,18 @@ def validate_dense_calibration_protocol(config: Mapping[str, Any]) -> None:
         raise ValueError("sample size must equal warmup plus measured documents")
     if int(runtime["batch_size"]) < 1:
         raise ValueError("runtime.batch_size must be positive")
-    if int(runtime["datasphere_units_per_second"]) < 1:
-        raise ValueError("DataSphere unit rate must be positive")
+    execution_backend = runtime.get("execution_backend", "datasphere")
+    unit_rate = int(runtime["datasphere_units_per_second"])
+    if execution_backend == "datasphere":
+        if unit_rate < 1:
+            raise ValueError("DataSphere unit rate must be positive")
+    elif execution_backend == "local_docker":
+        if "D033" not in experiment["decision_ids"]:
+            raise ValueError("local dense calibration must cite D033")
+        if unit_rate != 0:
+            raise ValueError("local unmetered calibration must use a zero unit rate")
+    else:
+        raise ValueError("unsupported dense calibration execution backend")
     if float(runtime["projection_reserve_multiplier"]) < 1.0:
         raise ValueError("resource projection reserve cannot be below one")
     if float(runtime["corpus_stream_documents_per_second"]) <= 0:
