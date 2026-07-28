@@ -6,6 +6,7 @@ import argparse
 import json
 import math
 import subprocess
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -29,7 +30,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-dir", type=Path, required=True)
     parser.add_argument("--source-config", type=Path, required=True)
-    parser.add_argument("--archive", type=Path, required=True)
+    parser.add_argument(
+        "--archive",
+        type=Path,
+        help="Optional immutable transport archive; required for DataSphere runs.",
+    )
     parser.add_argument("--output", type=Path)
     return parser
 
@@ -39,7 +44,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     report = audit_dense_calibration(
         run_dir=args.run_dir.resolve(),
         source_config=args.source_config.resolve(),
-        archive=args.archive.resolve(),
+        archive=args.archive.resolve() if args.archive else None,
     )
     if args.output:
         write_json_atomic(args.output.resolve(), report)
@@ -48,7 +53,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def audit_dense_calibration(
-    *, run_dir: Path, source_config: Path, archive: Path
+    *, run_dir: Path, source_config: Path, archive: Path | None
 ) -> dict[str, Any]:
     root = source_config.parents[2]
     manifest = _load_json(run_dir / "manifest.json")
@@ -112,16 +117,19 @@ def audit_dense_calibration(
     )
 
     measured_seconds = float(metrics["measured_seconds"])
+    unit_rate = int(config["runtime"]["datasphere_units_per_second"])
     projection = project_compute(
         measured_documents=record_summary["measured_documents"],
         measured_seconds=measured_seconds,
         full_corpus_documents=int(selection["full_corpus_documents"]),
-        units_per_second=int(config["runtime"]["datasphere_units_per_second"]),
+        units_per_second=max(unit_rate, 1),
         reserve_multiplier=float(config["runtime"]["projection_reserve_multiplier"]),
         external_throughput_cap=float(
             config["runtime"]["corpus_stream_documents_per_second"]
         ),
     )
+    if unit_rate == 0:
+        projection = replace(projection, projected_units=None)
     verified = {
         "measured_documents": record_summary["measured_documents"],
         "batch_count": record_summary["batch_count"],
@@ -146,20 +154,15 @@ def audit_dense_calibration(
     _verify_statistics(statistics, config)
     _verify_environment(environment, config)
 
-    projected_units = projection.projected_units
-    policy = {
-        "decision": "do_not_start_full_dense_corpus_build",
-        "d029_encoding_unit_limit": FULL_ENCODING_UNIT_LIMIT,
-        "reported_remaining_balance_before_calibration": REPORTED_REMAINING_BALANCE,
-        "projected_units": projected_units,
-        "exceeds_encoding_limit_by_units": projected_units
-        - FULL_ENCODING_UNIT_LIMIT,
-        "encoding_limit_multiple": projected_units / FULL_ENCODING_UNIT_LIMIT,
-        "exceeds_reported_balance_by_units": projected_units
-        - REPORTED_REMAINING_BALANCE,
-        "reported_balance_multiple": projected_units / REPORTED_REMAINING_BALANCE,
-        "projected_a100_hours_with_reserve": projection.projected_seconds / 3600,
-    }
+    backend = config["runtime"].get("execution_backend", "datasphere_notebook")
+    policy = _resource_policy(
+        backend=backend,
+        projection=projection,
+        peak_reserved_bytes=int(metrics["peak_reserved_bytes"]),
+        runtime=config["runtime"],
+    )
+    if backend != "local_docker" and archive is None:
+        raise ValueError("DataSphere calibration audit requires its transport archive")
 
     return {
         "schema_version": 1,
@@ -177,7 +180,7 @@ def audit_dense_calibration(
             ],
         },
         "provenance": {
-            "archive_sha256": sha256_file(archive),
+            "archive_sha256": sha256_file(archive) if archive else None,
             "original_source_revision": manifest["git_commit"],
             "manifest_sha256": sha256_file(run_dir / "manifest.json"),
             "source_config_sha256": sha256_file(source_config),
@@ -202,6 +205,54 @@ def audit_dense_calibration(
             "Label-free resource calibration only. It supports a resource-bound "
             "decision, not a dense-retrieval quality or reader-quality claim."
         ),
+    }
+
+
+def _resource_policy(
+    *,
+    backend: str,
+    projection: Any,
+    peak_reserved_bytes: int,
+    runtime: Mapping[str, Any],
+) -> dict[str, Any]:
+    if backend == "local_docker":
+        wall_limit = int(runtime["full_build_wall_time_limit_seconds"])
+        memory_limit = int(runtime["full_build_peak_reserved_limit_bytes"])
+        wall_passed = projection.projected_seconds <= wall_limit
+        memory_passed = peak_reserved_bytes <= memory_limit
+        return {
+            "decision": (
+                "authorize_separate_local_full_dense_corpus_build"
+                if wall_passed and memory_passed
+                else "do_not_start_full_dense_corpus_build"
+            ),
+            "execution_backend": backend,
+            "projected_seconds_with_reserve": projection.projected_seconds,
+            "projected_hours_with_reserve": projection.projected_seconds / 3600,
+            "wall_time_limit_seconds": wall_limit,
+            "wall_time_gate_passed": wall_passed,
+            "peak_reserved_bytes": peak_reserved_bytes,
+            "peak_reserved_limit_bytes": memory_limit,
+            "memory_gate_passed": memory_passed,
+            "projected_datasphere_units": None,
+        }
+
+    projected_units = projection.projected_units
+    if projected_units is None:
+        raise ValueError("metered calibration did not produce a unit projection")
+    return {
+        "decision": "do_not_start_full_dense_corpus_build",
+        "execution_backend": backend,
+        "d029_encoding_unit_limit": FULL_ENCODING_UNIT_LIMIT,
+        "reported_remaining_balance_before_calibration": REPORTED_REMAINING_BALANCE,
+        "projected_units": projected_units,
+        "exceeds_encoding_limit_by_units": projected_units
+        - FULL_ENCODING_UNIT_LIMIT,
+        "encoding_limit_multiple": projected_units / FULL_ENCODING_UNIT_LIMIT,
+        "exceeds_reported_balance_by_units": projected_units
+        - REPORTED_REMAINING_BALANCE,
+        "reported_balance_multiple": projected_units / REPORTED_REMAINING_BALANCE,
+        "projected_a100_hours_with_reserve": projection.projected_seconds / 3600,
     }
 
 

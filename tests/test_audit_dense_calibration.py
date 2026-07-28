@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import pytest
 
-from hierarchical_rag.audit_dense_calibration import summarize_calibration_records
+from hierarchical_rag.audit_dense_calibration import (
+    _resource_policy,
+    summarize_calibration_records,
+)
+from hierarchical_rag.dense_retrieval import ComputeProjection
 
 
 def _rows(count: int) -> list[dict[str, int]]:
@@ -50,3 +54,38 @@ def test_dense_calibration_summary_rejects_tampered_rowids():
         summarize_calibration_records(
             records=records, measured_rows=rows, batch_size=2, dimension=512
         )
+
+
+def test_local_resource_policy_authorizes_only_when_both_gates_pass():
+    projection = ComputeProjection(
+        measured_documents=8192,
+        measured_seconds=136.0,
+        documents_per_second=60.0,
+        effective_documents_per_second=60.0,
+        full_corpus_documents=5_233_235,
+        projected_seconds=100_000.0,
+        projected_units=None,
+        reserve_multiplier=1.25,
+    )
+    runtime = {
+        "full_build_wall_time_limit_seconds": 172_800,
+        "full_build_peak_reserved_limit_bytes": 7 * 1024**3,
+    }
+
+    accepted = _resource_policy(
+        backend="local_docker",
+        projection=projection,
+        peak_reserved_bytes=5 * 1024**3,
+        runtime=runtime,
+    )
+    rejected = _resource_policy(
+        backend="local_docker",
+        projection=projection,
+        peak_reserved_bytes=8 * 1024**3,
+        runtime=runtime,
+    )
+
+    assert accepted["decision"] == "authorize_separate_local_full_dense_corpus_build"
+    assert accepted["wall_time_gate_passed"] is True
+    assert accepted["memory_gate_passed"] is True
+    assert rejected["decision"] == "do_not_start_full_dense_corpus_build"

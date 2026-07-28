@@ -22,7 +22,7 @@ class ComputeProjection:
     effective_documents_per_second: float
     full_corpus_documents: int
     projected_seconds: float
-    projected_units: int
+    projected_units: int | None
     reserve_multiplier: float
 
 
