@@ -159,9 +159,14 @@ def audit_dense_calibration(
         backend=backend,
         projection=projection,
         peak_reserved_bytes=int(metrics["peak_reserved_bytes"]),
+        peak_host_rss_bytes=(
+            int(metrics["peak_host_rss_bytes"])
+            if "peak_host_rss_bytes" in metrics
+            else None
+        ),
         runtime=config["runtime"],
     )
-    if backend != "local_docker" and archive is None:
+    if backend not in {"local_docker", "ssh_docker"} and archive is None:
         raise ValueError("DataSphere calibration audit requires its transport archive")
 
     return {
@@ -199,6 +204,7 @@ def audit_dense_calibration(
             "truncated_document_rate": metrics["truncated_document_rate"],
             "peak_allocated_bytes": metrics["peak_allocated_bytes"],
             "peak_reserved_bytes": metrics["peak_reserved_bytes"],
+            "peak_host_rss_bytes": metrics.get("peak_host_rss_bytes"),
         },
         "resource_policy": policy,
         "claim_scope": (
@@ -213,17 +219,25 @@ def _resource_policy(
     backend: str,
     projection: Any,
     peak_reserved_bytes: int,
+    peak_host_rss_bytes: int | None,
     runtime: Mapping[str, Any],
 ) -> dict[str, Any]:
-    if backend == "local_docker":
+    if backend in {"local_docker", "ssh_docker"}:
         wall_limit = int(runtime["full_build_wall_time_limit_seconds"])
         memory_limit = int(runtime["full_build_peak_reserved_limit_bytes"])
+        host_memory_limit = runtime.get("full_build_peak_host_rss_limit_bytes")
         wall_passed = projection.projected_seconds <= wall_limit
         memory_passed = peak_reserved_bytes <= memory_limit
+        host_memory_passed = (
+            True
+            if host_memory_limit is None
+            else peak_host_rss_bytes is not None
+            and peak_host_rss_bytes <= int(host_memory_limit)
+        )
         return {
             "decision": (
                 "authorize_separate_local_full_dense_corpus_build"
-                if wall_passed and memory_passed
+                if wall_passed and memory_passed and host_memory_passed
                 else "do_not_start_full_dense_corpus_build"
             ),
             "execution_backend": backend,
@@ -234,6 +248,11 @@ def _resource_policy(
             "peak_reserved_bytes": peak_reserved_bytes,
             "peak_reserved_limit_bytes": memory_limit,
             "memory_gate_passed": memory_passed,
+            "peak_host_rss_bytes": peak_host_rss_bytes,
+            "peak_host_rss_limit_bytes": (
+                int(host_memory_limit) if host_memory_limit is not None else None
+            ),
+            "host_memory_gate_passed": host_memory_passed,
             "projected_datasphere_units": None,
         }
 

@@ -258,6 +258,7 @@ def _measure(
     measured_seconds = time.perf_counter() - measured_started
     peak_allocated = int(torch.cuda.max_memory_allocated())
     peak_reserved = int(torch.cuda.max_memory_reserved())
+    peak_host_rss = _peak_host_rss_bytes()
 
     with predictions_path.open("x", encoding="utf-8", newline="\n") as stream:
         for record in batch_records:
@@ -296,6 +297,7 @@ def _measure(
         "input_tokens_mean_before_truncation": sum(measured_lengths) / measured_count,
         "peak_allocated_bytes": peak_allocated,
         "peak_reserved_bytes": peak_reserved,
+        "peak_host_rss_bytes": peak_host_rss,
         "projected_embedding_bytes_fp16": embedding_bytes,
         "projection": projection_record,
         "authorization": (
@@ -574,6 +576,15 @@ def _nvidia_smi() -> str:
         capture_output=True,
         text=True,
     ).stdout.strip()
+
+
+def _peak_host_rss_bytes() -> int:
+    """Return peak process RSS in bytes for the pinned Linux container."""
+
+    import resource
+
+    value = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    return value if sys.platform == "darwin" else value * 1024
 
 
 def _assert_required_files(run_dir: Path) -> None:

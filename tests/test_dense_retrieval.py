@@ -130,6 +130,25 @@ def test_dense_calibration_protocol_rejects_local_backend_without_d033():
         validate_dense_calibration_protocol(config)
 
 
+def test_dense_calibration_protocol_accepts_ssh_backend_under_d035():
+    config = deepcopy(_config())
+    config["experiment"]["decision_ids"].extend(["D033", "D035"])
+    config["runtime"]["execution_backend"] = "ssh_docker"
+    config["runtime"]["datasphere_units_per_second"] = 0
+
+    validate_dense_calibration_protocol(config)
+
+
+def test_dense_calibration_protocol_rejects_ssh_backend_without_d035():
+    config = deepcopy(_config())
+    config["experiment"]["decision_ids"].append("D033")
+    config["runtime"]["execution_backend"] = "ssh_docker"
+    config["runtime"]["datasphere_units_per_second"] = 0
+
+    with pytest.raises(ValueError, match="must cite D035"):
+        validate_dense_calibration_protocol(config)
+
+
 def test_dense_calibration_protocol_rejects_quality_relevant_drift():
     config = deepcopy(_config())
     config["retriever"]["serialization"] = "title_plus_text"
@@ -187,6 +206,14 @@ def test_versioned_dense_calibration_config_is_valid():
 def test_versioned_local_dense_calibration_config_is_valid():
     config = load_experiment_config(
         "experiments/configs/p2-qwen3-embedding-local-calibration-v1.yaml"
+    )
+
+    validate_dense_calibration_protocol(config)
+
+
+def test_versioned_ubuntu3070_dense_calibration_config_is_valid():
+    config = load_experiment_config(
+        "experiments/configs/p2-qwen3-embedding-ubuntu3070-calibration-v1.yaml"
     )
 
     validate_dense_calibration_protocol(config)

@@ -142,11 +142,15 @@ def validate_dense_calibration_protocol(config: Mapping[str, Any]) -> None:
     if execution_backend == "datasphere":
         if unit_rate < 1:
             raise ValueError("DataSphere unit rate must be positive")
-    elif execution_backend == "local_docker":
+    elif execution_backend in {"local_docker", "ssh_docker"}:
         if "D033" not in experiment["decision_ids"]:
-            raise ValueError("local dense calibration must cite D033")
+            raise ValueError("unmetered dense calibration must cite D033")
+        if execution_backend == "ssh_docker" and "D035" not in experiment[
+            "decision_ids"
+        ]:
+            raise ValueError("SSH dense calibration must cite D035")
         if unit_rate != 0:
-            raise ValueError("local unmetered calibration must use a zero unit rate")
+            raise ValueError("unmetered calibration must use a zero unit rate")
     else:
         raise ValueError("unsupported dense calibration execution backend")
     if float(runtime["projection_reserve_multiplier"]) < 1.0:

@@ -6,14 +6,14 @@ Last updated: 2026-07-28.
 
 The repository preparation, reproducibility infrastructure, metric validation, HRM-Text interface work, full BM25 retrieval run, and train-only reader feasibility studies are complete or substantially complete. The project has not yet produced a confirmatory HRM-versus-baseline comparison on shared validation evidence.
 
-The current reported DataSphere balance is 3,409,593 units. D031's first command stopped before model loading because the 10 GB project volume had only 3.7 GB available, and Jobs cannot retain the multi-gigabyte index without writable object storage. The D033 local RTX 4060 BF16 calibration has now completed and passed independent audit: 59.5847 documents/second, a conservative 30.50-hour full-build projection, and 4.40 GiB peak reserved VRAM. D034 selects the resumable local build, preserving all DataSphere units for the later claim-bearing work; validation remains closed.
+The current reported DataSphere balance is 3,409,593 units. D031's first command stopped before model loading because the 10 GB project volume had only 3.7 GB available, and Jobs cannot retain the multi-gigabyte index without writable object storage. The D033 local RTX 4060 BF16 calibration completed and passed independent audit: 59.5847 documents/second, a conservative 30.50-hour full-build projection, and 4.40 GiB peak reserved VRAM. D034 keeps that resumable local option valid. D035 now gates a candidate move to the continuously available `ubuntu-home` RTX 3070 with a separate throughput, VRAM, and host-RSS calibration; validation remains closed.
 
 The end-to-end project is approximately **47% complete** by research-stage exit criteria. This estimate is not based on code volume: feasibility, infrastructure, sparse retrieval, dense resource feasibility, and reader-budget diagnosis are complete, while the claim-bearing H1–H3 experiments remain mostly ahead.
 
 | Stage | Status | Completed | Remaining exit work |
 |---|---|---|---|
 | P1 — Feasibility | Complete | Pinned HRM-Text reference, deterministic train slice, metric harness, GPU environment, reader interfaces, and preserved failures | No remaining P1 work; baseline selection gates P3/E2 |
-| P2 — Retrieval | Full build ready | Full 7,405-example BM25 run, independent audit, bootstrap CI, error analysis, audited A100 and local dense calibrations, tested resumable builder, disk guards, and a frozen local execution config | Execute the D034 local full build; then independently audit the index and run exact dense validation search |
+| P2 — Retrieval | Alternate host calibration ready | Full 7,405-example BM25 run, independent audit, bootstrap CI, error analysis, audited A100/RTX 4060 calibrations, tested resumable builder, disk guards, and a valid RTX 4060 execution fallback | Run and audit the D035 RTX 3070 calibration; freeze that host only if all gates pass, then execute one full build and audit the index |
 | P3 — Frozen HRM | In progress | HRM adapter and gold-evidence train smoke | Identical BM25-evidence smoke and confirmatory validation comparison |
 | P4 — Robustness | Prepared only | Deterministic distractor machinery | Shared-reader runs at 0, 1, 2, and 4 distractors with paired analysis |
 | P5 — Adaptation | Not started | Hypothesis and safeguards defined | Training data, low-level adaptation, seeds, ablations, and reasoning-retention evaluation |
@@ -85,14 +85,14 @@ Raw archives are stored locally under `results/runs/_archives/`; extracted immut
 
 ## Next gates
 
-1. Run `p2-qwen3-embedding-fullwiki-build-local-v1` from its clean committed revision. Preserve and resume its immutable 32,768-document checkpoints if interrupted.
+1. Run `p2-qwen3-embedding-ubuntu3070-calibration-v1` from its clean committed revision and independently audit the returned archive. If its wall-time, VRAM, and host-RSS gates pass, freeze a separate RTX 3070 full-build config; otherwise retain the already authorized RTX 4060 path.
 2. Independently audit the completed vector/metadata manifest and add their exact checksums to a new dense E1 config before opening validation questions.
 3. Run exact dense search on all 7,405 examples, audit retrieval metrics, and freeze immutable BM25/dense/gold evidence caches.
 4. Benchmark a batched reader implementation on fixed synthetic/train-only prompts and select execution by units per completed example.
 5. Freeze the mentor-facing E2 baseline family, shared evidence/token contract, sample size, seeds, paired tests, confidence intervals, effect size, and multiple-comparison correction.
 6. Run the train-only shared-evidence gate, then H1 validation, H2 robustness, and H3 adaptation in that order.
 
-No additional D017 or D023 run is authorized. The next GPU work is the D034 corpus-only local full build; it must not open validation labels. Query search and E2 remain blocked until the completed index is independently audited and pinned.
+No additional D017 or D023 run is authorized. The next GPU work is the D035 corpus-only RTX 3070 calibration; it must not open validation labels or automatically start the full build. Query search and E2 remain blocked until one completed index is independently audited and pinned.
 
 ### Expanded compute envelopes (D031)
 

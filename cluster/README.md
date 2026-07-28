@@ -80,6 +80,16 @@ pwsh -File cluster/run_dense_local_fullwiki_build.ps1
 
 The script verifies the pinned calibration audit, 12 GiB initial free space, exact source revision, container, corpus, model, and dependency checksums before encoding. The progress bar covers all 5,233,235 documents. Each 32,768-document shard is checksummed and committed to the ignored `artifacts/indexes/qwen3-embedding-0.6b-fullwiki-local-v1.building/` directory, so an interruption can resume from the last complete shard by rerunning the same committed revision. Do not delete or modify that directory. The attempt cap is 48 hours; the current conservative projection is approximately 30.5 hours and consumes no DataSphere units. Validation questions remain closed until the completed index has been independently audited.
 
+### ubuntu-home RTX 3070 gate
+
+D035 permits a candidate move to `ubuntu-home`, but requires a separate hardware calibration because the desktop RTX 3070 and the laptop RTX 4060 can differ in throughput, kernels, thermal behavior, and host-memory pressure. Copy only the two ignored, checksummed calibration sample files into `data/interim/hotpotqa/`, install Docker Engine and NVIDIA Container Toolkit from their official repositories, and run from a clean committed checkout:
+
+```bash
+bash cluster/run_dense_ubuntu3070_calibration.sh
+```
+
+The runner displays batch progress in the terminal and always creates a timestamped archive under `results/runs/_archives/`. Return that archive for independent audit. Do not start the full corpus on the RTX 3070 until a subsequent decision and build configuration pin the audited projection. The host gate requires at most 48 projected hours with reserve, at most 7 GiB reserved VRAM, and at most 6 GiB peak process RSS.
+
 The historical script now rejects all three consumed attempts. Its source, configs, terminal logs, raw artifacts, and reviewed audits remain preserved for reproducibility. Notebook efficiency measurements are not directly comparable with pinned-container Job measurements.
 
 ### D023 expanded-output Notebook series

@@ -343,6 +343,16 @@ Required fields: ID, date, owner, status, decision, alternatives, evidence, expe
 - **Impact:** the next major experiment is `p2-qwen3-embedding-fullwiki-build-local-v1`; it consumes local wall time but zero DataSphere units, preserving the reported 3,409,593 units for H1–H3, failures, and reproduction. Its batch-32 outputs cannot be mixed with the zero-shard D031 attempt. The build remains non-claim-bearing: it enables the mandatory dense E1 ablation but cannot establish retrieval or reader quality by itself.
 - **Revisit when:** the 48-hour cap is reached, GPU memory exceeds 7 GiB, free storage falls below the resume guard, a checkpoint fails integrity validation, hardware changes, the audit checksum differs, or the completed index audit fails.
 
+### D035 — Recalibrate before moving the dense build to ubuntu-home RTX 3070
+
+- **Date / owner:** 2026-07-28 / alexander_dikov.
+- **Status:** accepted before the RTX 3070 calibration and before any validation question or dense quality metric is opened.
+- **Decision:** allow `ubuntu-home` as a candidate execution host, but do not reuse the RTX 4060 throughput authorization across hardware. Run the same frozen 256-document warmup plus 8,192-document systematic corpus calibration once in the pinned container on the RTX 3070 at batch size 32 and BF16. In addition to the D033 limits of at most 172,800 projected seconds with the 1.25 reserve and at most 7 GiB peak reserved VRAM, require peak process RSS of at most 6 GiB because the host has only 7.7 GiB physical RAM. The calibration authorizes no full build by itself: independently audit its immutable artifact and record a subsequent host-specific build decision first.
+- **Alternatives:** use the already calibrated RTX 4060 laptop; assume equal behavior from equal VRAM; start the full corpus immediately on the RTX 3070; use an unpinned native Python environment; allocate A100 despite the storage and unit constraints.
+- **Evidence:** a read-only SSH preflight reported `NVIDIA GeForce RTX 3070`, 8,192 MiB VRAM, compute capability 8.6, driver 610.47, 7.7 GiB host RAM, 2 GiB swap, and 489 GiB free persistent storage. NVIDIA documents BF16 Tensor Core support for Ampere architecture at https://docs.nvidia.com/cuda/archive/11.0/ampere-tuning-guide/. Docker is not yet installed, while passwordless administrative access and systemd are available. No benchmark question, label, or quality observation informed this host choice.
+- **Impact:** the next executable command is the corpus-only `p2-qwen3-embedding-ubuntu3070-calibration-v1`. Its runner verifies the clean source revision, sample checksums, exact GPU, host RAM, free disk, pinned container, model revision, and dependencies; it preserves a timestamped artifact on success or failure. D034 remains valid only for the RTX 4060 configuration and is not silently transferred to the RTX 3070.
+- **Revisit when:** the audit passes all three gates, the process approaches the host-RAM limit or uses swap, Docker GPU access fails, the machine cannot remain continuously available, or its hardware changes.
+
 ## New decision template
 
 ### DXXX — Short title
