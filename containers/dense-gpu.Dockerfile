@@ -17,4 +17,4 @@ WORKDIR /opt/hierarchical-rag
 RUN python -m pip install --no-build-isolation --no-deps .
 
 WORKDIR /workspace
-ENTRYPOINT ["python", "-m", "hierarchical_rag.run_dense_calibration"]
+ENTRYPOINT ["python", "-m"]

@@ -333,6 +333,16 @@ Required fields: ID, date, owner, status, decision, alternatives, evidence, expe
 - **Impact:** the next executable experiment is `p2-qwen3-embedding-local-calibration-v1`; it observes no benchmark questions or quality metrics. Passing the gate permits a new versioned local-build config with the measured batch size and leaves DataSphere units for the claim-bearing reader experiments. It does not itself authorize validation search, alter D028 retrieval semantics, or make a dense-quality claim.
 - **Revisit when:** the local gate passes or fails, an S3 connector becomes available, project storage reaches at least 25 GB, the DataSphere balance changes materially, or the pinned container cannot execute BF16 on the local GPU.
 
+### D034 — Execute the frozen full-corpus dense build on the calibrated local GPU
+
+- **Date / owner:** 2026-07-28 / alexander_dikov.
+- **Status:** accepted after the D033 calibration completed and its immutable records were independently audited, before any validation question or dense quality metric was opened.
+- **Decision:** run the unchanged D028 Qwen3-Embedding-0.6B corpus protocol locally in the pinned Linux container on the calibrated RTX 4060, using batch size 32 and 32,768-document immutable checkpoints. Batch size and hardware are execution-only changes from D031; the complete 5,233,235-document corpus, model revision, BF16 computation, text serialization, 512-dimensional MRL projection, L2 normalization, FP16 storage, document order, and later exact-search contract remain unchanged. Stop an attempt after 172,800 seconds, preserve every committed shard, and resume only from the identical source/config/corpus/model identity. Do not open validation questions or labels until the completed vector and metadata manifests have been independently audited.
+- **Alternatives:** spend approximately 2.53 million units on A100; use a smaller corpus; change embedding model or precision; start a DataSphere Job without durable output storage; wait for project-storage expansion or an S3 connector.
+- **Evidence:** `p2-qwen3-embedding-local-calibration-v1` encoded the frozen 8,192 measured documents at 59.5847 documents/second, with 4,729,077,760 peak reserved bytes and no observed input truncation. Its independently recomputed 1.25x projection is 109,785.62 seconds (30.50 hours), below the preregistered 172,800-second gate, and its memory use is below the 7 GiB gate. Audit SHA256 `783f9c7fcf0997c87e1440caa4f66d87abd3d0ed99afeaef8e50c5325371c543` authorizes the separate local build without observing questions, labels, or retrieval quality.
+- **Impact:** the next major experiment is `p2-qwen3-embedding-fullwiki-build-local-v1`; it consumes local wall time but zero DataSphere units, preserving the reported 3,409,593 units for H1–H3, failures, and reproduction. Its batch-32 outputs cannot be mixed with the zero-shard D031 attempt. The build remains non-claim-bearing: it enables the mandatory dense E1 ablation but cannot establish retrieval or reader quality by itself.
+- **Revisit when:** the 48-hour cap is reached, GPU memory exceeds 7 GiB, free storage falls below the resume guard, a checkpoint fails integrity validation, hardware changes, the audit checksum differs, or the completed index audit fails.
+
 ## New decision template
 
 ### DXXX — Short title

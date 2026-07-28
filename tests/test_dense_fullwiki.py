@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import json
+from pathlib import Path
 
 import pytest
 
@@ -11,6 +13,7 @@ from hierarchical_rag.fullwiki import WikiDocument
 from hierarchical_rag.run_dense_fullwiki_build import (
     _select_first_overflow_chunks,
     _source_revision,
+    _verify_local_resource_gate,
 )
 
 
@@ -146,6 +149,40 @@ def test_versioned_dense_fullwiki_build_config_is_frozen():
         "experiments/configs/p2-qwen3-embedding-fullwiki-build-v1.yaml"
     )
     validate_dense_build_protocol(config)
+
+
+def test_versioned_local_dense_fullwiki_build_config_is_frozen():
+    config = load_experiment_config(
+        "experiments/configs/p2-qwen3-embedding-fullwiki-build-local-v1.yaml"
+    )
+    validate_dense_build_protocol(config)
+
+
+def test_local_dense_build_requires_d034_and_calibrated_batch_size():
+    config = load_experiment_config(
+        "experiments/configs/p2-qwen3-embedding-fullwiki-build-local-v1.yaml"
+    )
+    missing_decision = deepcopy(config)
+    missing_decision["experiment"]["decision_ids"].remove("D034")
+    with pytest.raises(ValueError, match="must cite D034"):
+        validate_dense_build_protocol(missing_decision)
+
+    wrong_batch = deepcopy(config)
+    wrong_batch["runtime"]["batch_size"] = 64
+    with pytest.raises(ValueError, match="D033 calibration"):
+        validate_dense_build_protocol(wrong_batch)
+
+
+def test_local_dense_build_accepts_only_the_pinned_calibration_audit():
+    config = load_experiment_config(
+        "experiments/configs/p2-qwen3-embedding-fullwiki-build-local-v1.yaml"
+    )
+    _verify_local_resource_gate(root=Path.cwd(), config=config)
+
+    tampered = deepcopy(config)
+    tampered["runtime"]["calibration_audit_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="file checksum differs"):
+        _verify_local_resource_gate(root=Path.cwd(), config=tampered)
 
 
 def test_overflow_selection_keeps_first_chunk_and_counts_truncation():

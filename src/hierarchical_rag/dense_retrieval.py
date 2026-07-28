@@ -206,10 +206,31 @@ def validate_dense_build_protocol(config: Mapping[str, Any]) -> None:
         raise ValueError("dense build source count differs from corpus audit")
     if int(dataset["expected_skipped_empty_text"]) != 94:
         raise ValueError("dense build empty-text exclusions differ from corpus audit")
-    if int(runtime["batch_size"]) != 128:
-        raise ValueError("dense build batch size differs from successful calibration")
+    backend = runtime.get("execution_backend", "datasphere_notebook")
+    if backend == "local_docker":
+        if "D034" not in experiment["decision_ids"]:
+            raise ValueError("local dense build must cite D034")
+        if int(runtime["batch_size"]) != 32:
+            raise ValueError("local dense build batch size differs from D033 calibration")
+        if runtime.get("expected_gpu_name_contains") != "RTX 4060":
+            raise ValueError("local dense build must use the calibrated RTX 4060")
+        if int(runtime.get("datasphere_units_per_second", -1)) != 0:
+            raise ValueError("local dense build must record zero DataSphere unit rate")
+        if int(runtime["max_attempt_seconds"]) > 172_800:
+            raise ValueError("local dense build exceeds the D033 wall-time gate")
+        if not runtime.get("calibration_audit_file"):
+            raise ValueError("local dense build must pin its calibration audit")
+        if len(str(runtime.get("calibration_audit_sha256", ""))) != 64:
+            raise ValueError("local dense build calibration audit checksum is invalid")
+        batch_size = 32
+    elif backend == "datasphere_notebook":
+        if int(runtime["batch_size"]) != 128:
+            raise ValueError("dense build batch size differs from successful calibration")
+        batch_size = 128
+    else:
+        raise ValueError("unsupported dense build execution backend")
     shard_documents = int(runtime["shard_documents"])
-    if shard_documents < 128 or shard_documents % 128:
+    if shard_documents < batch_size or shard_documents % batch_size:
         raise ValueError("dense shard size must be a positive batch-size multiple")
     if int(runtime["max_attempt_seconds"]) < 1:
         raise ValueError("dense build attempt limit must be positive")

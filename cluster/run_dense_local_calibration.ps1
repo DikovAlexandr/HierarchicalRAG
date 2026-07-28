@@ -29,6 +29,7 @@ docker run --rm --gpus all `
     --volume "hierarchical-rag-hf-cache:/root/.cache/huggingface" `
     --workdir /workspace `
     $image `
+    hierarchical_rag.run_dense_calibration `
     --config experiments/configs/p2-qwen3-embedding-local-calibration-v1.yaml
 if ($LASTEXITCODE -ne 0) {
     throw "Local dense calibration failed. Preserve results/runs before retrying."

@@ -72,6 +72,7 @@ def execute(
     if _md5_file(corpus_path) != dataset["source_md5"]:
         raise ValueError("fullwiki corpus MD5 differs from the official checksum")
     _verify_file(lock_path, None, runtime["dependency_lock_sha256"])
+    _verify_local_resource_gate(root=root, config=config)
 
     identity = {
         "source_revision": revision,
@@ -541,6 +542,50 @@ def _verify_file(path: Path, size: int | None, checksum: str) -> None:
         raise ValueError(f"file size differs: {path}")
     if sha256_file(path) != checksum:
         raise ValueError(f"file checksum differs: {path}")
+
+
+def _verify_local_resource_gate(
+    *, root: Path, config: Mapping[str, Any]
+) -> None:
+    runtime = config["runtime"]
+    if runtime.get("execution_backend", "datasphere_notebook") != "local_docker":
+        return
+    audit_path = _resolve(root, runtime["calibration_audit_file"])
+    _verify_file(audit_path, None, runtime["calibration_audit_sha256"])
+    audit = _load_json(audit_path)
+    policy = audit.get("resource_policy", {})
+    provenance = audit.get("provenance", {})
+    retriever = config["retriever"]
+    expected = {
+        "experiment_id": "p2-qwen3-embedding-local-calibration-v1",
+        "integrity_status": "passed_for_resource_projection",
+        "decision": "authorize_separate_local_full_dense_corpus_build",
+        "execution_backend": "local_docker",
+        "model_id": retriever["id"],
+        "model_revision": retriever["revision"],
+    }
+    observed = {
+        "experiment_id": audit.get("experiment_id"),
+        "integrity_status": audit.get("audit", {}).get("integrity_status"),
+        "decision": policy.get("decision"),
+        "execution_backend": policy.get("execution_backend"),
+        "model_id": provenance.get("model_id"),
+        "model_revision": provenance.get("model_revision"),
+    }
+    if observed != expected:
+        raise ValueError("local dense calibration audit does not authorize this build")
+    if not policy.get("wall_time_gate_passed") or not policy.get(
+        "memory_gate_passed"
+    ):
+        raise ValueError("local dense calibration resource gate did not pass")
+    if float(policy["projected_seconds_with_reserve"]) > int(
+        runtime["max_attempt_seconds"]
+    ):
+        raise ValueError("local dense projection exceeds the build attempt cap")
+    if int(policy["peak_reserved_bytes"]) > int(
+        policy["peak_reserved_limit_bytes"]
+    ):
+        raise ValueError("local dense calibration exceeded its memory gate")
 
 
 def _md5_file(path: Path) -> str:

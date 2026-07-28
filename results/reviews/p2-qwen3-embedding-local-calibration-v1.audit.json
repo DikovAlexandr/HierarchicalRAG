@@ -1,0 +1,62 @@
+{
+  "audit": {
+    "audit_source_revision": "0607b6c9be88a207c746222a0dc53bd5457821c1",
+    "integrity_status": "passed_for_resource_projection",
+    "limitations": [
+      "Per-document pre-truncation token lengths were not retained, so the reported mean input length and zero-truncation count cannot be recomputed from the artifact alone. They remain reproducible from the pinned sample and tokenizer, but are not needed for the D029 cost decision."
+    ],
+    "original_status": "complete_non_claim_bearing_resource_calibration"
+  },
+  "claim_scope": "Label-free resource calibration only. It supports a resource-bound decision, not a dense-retrieval quality or reader-quality claim.",
+  "experiment_id": "p2-qwen3-embedding-local-calibration-v1",
+  "provenance": {
+    "archive_sha256": null,
+    "checked_input_sha256": {
+      "dependency_lock_file": "6837758e40ed412b567ac445af3ae78eb4d34898a0dbd261672b8d078be6785b",
+      "manifest_file": "fa0f52fcd872bdd900abe8c32f90f410a2ab05669834ab131336280bf5c53294",
+      "source_file": "70ad85afdb16e6ec8e2f9aaa2649f9156c61b6e6f6901c89d9ec46c9b38200a1"
+    },
+    "hardware": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "manifest_sha256": "29b0ea462f35907ac8535ef8e40e7514b85416d2549ff69f70dc26ac2d17dfde",
+    "model_id": "Qwen/Qwen3-Embedding-0.6B",
+    "model_revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+    "original_source_revision": "ce935ee7677c43cc4592db6dcc0b783214bfb0a9",
+    "resolved_config_sha256": "04ec810f6198c47a7abea6a16c0b8567d6dc0332b36bf8e8025d56537a5dd928",
+    "source_config_sha256": "ecc580cda8c7f6dd031aba404a7054a3fbd79b3f3d02b386d653b302e8a7e29c"
+  },
+  "reported_non_recomputed_metrics": {
+    "input_tokens_mean_before_truncation": 69.2908935546875,
+    "peak_allocated_bytes": 3852803072,
+    "peak_reserved_bytes": 4729077760,
+    "truncated_document_count": 0,
+    "truncated_document_rate": 0.0
+  },
+  "resource_policy": {
+    "decision": "authorize_separate_local_full_dense_corpus_build",
+    "execution_backend": "local_docker",
+    "memory_gate_passed": true,
+    "peak_reserved_bytes": 4729077760,
+    "peak_reserved_limit_bytes": 7516192768,
+    "projected_datasphere_units": null,
+    "projected_hours_with_reserve": 30.4960061031388,
+    "projected_seconds_with_reserve": 109785.62197129968,
+    "wall_time_gate_passed": true,
+    "wall_time_limit_seconds": 172800
+  },
+  "schema_version": 1,
+  "verified_metrics": {
+    "batch_count": 256,
+    "documents_per_second": 59.58470364826188,
+    "max_l2_norm_error_after_fp16_cast": 0.00022590160369873047,
+    "measured_documents": 8192,
+    "projected_embedding_bytes_fp16": 5358832640,
+    "projection": {
+      "effective_documents_per_second": 59.58470364826188,
+      "projected_seconds": 109785.62197129968,
+      "projected_units": null,
+      "reserve_multiplier": 1.25
+    },
+    "tokens_per_second": 4128.6773579793135,
+    "tokens_processed": 567631
+  }
+}

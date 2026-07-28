@@ -70,7 +70,15 @@ D033 uses the same pinned Linux/PyTorch environment and frozen D028 corpus sampl
 pwsh -File cluster/run_dense_local_calibration.ps1
 ```
 
-The runner builds `containers/dense-gpu.Dockerfile` at the exact Git revision, mounts the repository for checksummed inputs and immutable run outputs, and keeps the Hugging Face cache in a named Docker volume. The full build remains forbidden until the calibration passes both preregistered D033 gates: a 1.25x projected wall time of at most 48 hours and at most 7 GiB peak reserved GPU memory.
+The runner builds `containers/dense-gpu.Dockerfile` at the exact Git revision, mounts the repository for checksummed inputs and immutable run outputs, and keeps the Hugging Face cache in a named Docker volume. The audited calibration passed both preregistered D033 gates: its 1.25x projection is 30.50 hours and peak reserved GPU memory is 4.40 GiB.
+
+D034 therefore authorizes the separate, corpus-only local build. Keep the laptop on AC power, disable automatic sleep, close other GPU-heavy applications, and run only from the clean committed revision:
+
+```powershell
+pwsh -File cluster/run_dense_local_fullwiki_build.ps1
+```
+
+The script verifies the pinned calibration audit, 12 GiB initial free space, exact source revision, container, corpus, model, and dependency checksums before encoding. The progress bar covers all 5,233,235 documents. Each 32,768-document shard is checksummed and committed to the ignored `artifacts/indexes/qwen3-embedding-0.6b-fullwiki-local-v1.building/` directory, so an interruption can resume from the last complete shard by rerunning the same committed revision. Do not delete or modify that directory. The attempt cap is 48 hours; the current conservative projection is approximately 30.5 hours and consumes no DataSphere units. Validation questions remain closed until the completed index has been independently audited.
 
 The historical script now rejects all three consumed attempts. Its source, configs, terminal logs, raw artifacts, and reviewed audits remain preserved for reproducibility. Notebook efficiency measurements are not directly comparable with pinned-container Job measurements.
 
